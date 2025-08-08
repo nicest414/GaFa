@@ -1,0 +1,23 @@
+# Python
+.venv311/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.python-version
+.pytest_cache/
+.coverage
+
+# Node / Web
+node_modules/
+dist/
+build/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.env
