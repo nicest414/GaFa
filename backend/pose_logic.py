@@ -1,0 +1,291 @@
+"""
+Task 2.1: ポーズ判定ロジック
+
+MediaPipe Pose のランドマーク配列(33個)から、
+  - "PUNCH"
+  - "KICK"
+  - "GUARD"
+  - "IDLE"
+のいずれかを返す。
+
+使い方例:
+    from pose_logic import classify_pose_from_landmarks
+    pose = classify_pose_from_landmarks(landmarks)  # landmarks: results.pose_landmarks.landmark
+
+    # または MediaPipe の results から直接:
+    from pose_logic import classify_pose_from_results
+    pose = classify_pose_from_results(results)
+
+ヒューリスティックベースで、スケールは肩幅で正規化しています。
+必要ランドマークが欠ける場合は "IDLE" を返します。
+
+[微調整ガイド]
+- 座標系: MediaPipe の2D座標は x: 右が+、y: 下が+（上に行くほど y は小さくなる）。0〜1に正規化。
+- スケール: 基本は肩幅（左右肩の距離）を1.0として、距離しきい値を比率で記述。肩が見えないときは腰幅にフォールバック。
+- 可視性: visibility が低い点はノイズが多いので無視（min_visibility）。屋内・明るさで最適値が変わる。
+- チューニング手順の例:
+  1) 誤検出を減らしたい → 角度の最小/最大を厳しく、距離比を大きめに、min_visibility を少し上げる。
+  2) 反応を良くしたい → 角度の閾値を緩める、距離比を小さく、スムージング（pose_test側）を弱める。
+  3) 体格差対応 → すべて比率ベースなので基本は不要。肩や腰が隠れやすい衣服の場合は min_visibility を調整。
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Sequence, Optional
+import math
+
+try:
+    # 型安全かつ定数参照のために import（未インストールでも動くように例外は無視）
+    from mediapipe.python.solutions.pose import PoseLandmark as PL
+except Exception:  # pragma: no cover - 実行環境に mediapipe が無い場合のフォールバック
+    class PL:  # type: ignore
+        NOSE = 0
+        LEFT_SHOULDER = 11
+        RIGHT_SHOULDER = 12
+        LEFT_ELBOW = 13
+        RIGHT_ELBOW = 14
+        LEFT_WRIST = 15
+        RIGHT_WRIST = 16
+        LEFT_HIP = 23
+        RIGHT_HIP = 24
+        LEFT_KNEE = 25
+        RIGHT_KNEE = 26
+        LEFT_ANKLE = 27
+        RIGHT_ANKLE = 28
+
+
+# しきい値のまとめ。各値は「肩幅=1.0」の比率で扱う（角度は度）。
+# 値の右側に、想定レンジや調整のヒントを記載。
+@dataclass(frozen=True)
+class Thresholds:
+    # スケールは肩幅（左右肩の距離）。小さすぎるとノイズに敏感、大きすぎると反応鈍化。
+    # 推奨: 0.4〜0.7。暗所・ブレが多いなら 0.6 付近に上げる。
+    min_visibility: float = 0.5
+
+    # GUARD 条件: 「両手が顔/肩の近く」かつ「肘が曲がっている」。
+    # guard_elbow_angle_max: 肘の曲がり（小さいほど曲げ）。120〜140で調整。低いほど厳しい。
+    guard_elbow_angle_max: float = 130.0
+    # guard_wrist_to_face_scale: 手首-鼻が近いほど良い。1.0〜1.4。小さくするほど厳しい。
+    guard_wrist_to_face_scale: float = 1.2
+    # guard_wrist_to_shoulder_scale: 手首-肩が近いかどうか。0.6〜1.0。小さくするほど厳しい。
+    guard_wrist_to_shoulder_scale: float = 0.8
+
+    # PUNCH 条件: 「肘が伸びている」かつ「手首が肩から十分離れている」かつ「肩高さと大きくズレない」。
+    # punch_elbow_angle_min: 150〜175。高いほど「しっかり伸ばした」時のみ反応。
+    punch_elbow_angle_min: float = 150.0
+    # punch_wrist_to_shoulder_scale: 手首-肩の距離比。1.0〜1.3。大きくすると厳しい。
+    punch_wrist_to_shoulder_scale: float = 1.1
+    # punch_wrist_y_align_scale: 肩高さからの許容ずれ（y方向）。0.2〜0.5。小さいほど厳しい。
+    punch_wrist_y_align_scale: float = 0.35
+
+    # KICK 条件（常時検出抑止のため厳格化）。
+    # kick_knee_angle_min: 膝の伸び。160〜175。高いほど「しっかり伸ばした」時のみ反応。
+    kick_knee_angle_min: float = 165.0
+    # 旧仕様の直線距離しきい値（互換のため残置）。通常は無効。
+    kick_ankle_to_hip_scale: float = 1.2
+    # 新基準1: 股関節から足首が x 方向に前へ出ている比率。0.4〜0.9。大きくすると厳しい。
+    kick_ankle_x_to_hip_scale: float = 0.6
+    # 新基準2: 足首が膝より十分「上」（y が小さい）かどうかのバッファ。0.2〜0.4。大きくすると検出しやすい。
+    kick_ankle_above_knee_scale: float = 0.3
+
+
+TH = Thresholds()
+
+
+class LandmarkLike:
+    """MediaPipe の NormalizedLandmark ライクなオブジェクト用の Protocol ライク定義。
+    x, y, z, visibility を持っていることを想定。
+    """
+    x: float
+    y: float
+    z: float
+    visibility: float
+
+
+def _dist(a: LandmarkLike, b: LandmarkLike) -> float:
+    dx, dy = a.x - b.x, a.y - b.y
+    return math.hypot(dx, dy)
+
+
+def _angle_deg(a: LandmarkLike, b: LandmarkLike, c: LandmarkLike) -> float:
+    """b を頂点とする ∠abc の角度[deg]"""
+    v1 = (a.x - b.x, a.y - b.y)
+    v2 = (c.x - b.x, c.y - b.y)
+    dot = v1[0] * v2[0] + v1[1] * v2[1]
+    n1 = math.hypot(*v1)
+    n2 = math.hypot(*v2)
+    if n1 == 0 or n2 == 0:
+        return 0.0
+    cosang = max(-1.0, min(1.0, dot / (n1 * n2)))
+    return math.degrees(math.acos(cosang))
+
+
+def _is_visible(lm: LandmarkLike, min_vis: float) -> bool:
+    try:
+        return getattr(lm, "visibility", 1.0) >= min_vis
+    except Exception:
+        return True
+
+
+def _get_scale(lm: Sequence[LandmarkLike]) -> Optional[float]:
+    # スケール推定: 可能なら肩幅、不可なら腰幅。戻り値は0より大の実数。
+    # 注意: カメラのアングルで肩幅が小さく写ると、相対比が大きめに出て検出が甘くなる傾向。
+    # 対策: 環境で誤検出が多いときは各しきい値をやや大きめに。
+    try:
+        ls, rs = lm[PL.LEFT_SHOULDER], lm[PL.RIGHT_SHOULDER]
+        if _is_visible(ls, TH.min_visibility) and _is_visible(rs, TH.min_visibility):
+            d = _dist(ls, rs)
+            if d > 0:
+                return d
+        # 肩幅が無理なら腰幅
+        lh, rh = lm[PL.LEFT_HIP], lm[PL.RIGHT_HIP]
+        if _is_visible(lh, TH.min_visibility) and _is_visible(rh, TH.min_visibility):
+            d = _dist(lh, rh)
+            if d > 0:
+                return d
+    except Exception:
+        return None
+    return None
+
+
+def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
+    """MediaPipeの landmarks (list of 33) を受け取り、ポーズ名を返す."""
+    if not landmarks or len(landmarks) < 29:
+        return "IDLE"
+
+    scale = _get_scale(landmarks)
+    if not scale:
+        return "IDLE"
+
+    def has(*idx: int) -> bool:
+        return all(0 <= i < len(landmarks) and _is_visible(landmarks[i], TH.min_visibility) for i in idx)
+
+    # --- GUARD 検出 ---
+    # 目的: 顔の前で両腕を構える姿勢。パンチやキックの途中で誤検出しないよう、両側の条件を満たす必要あり。
+    # 調整ポイント:
+    # - 近さ判定: guard_wrist_to_face_scale / guard_wrist_to_shoulder_scale
+    # - 曲がり判定: guard_elbow_angle_max（小さくすると「より曲げている」必要）
+    if has(PL.NOSE, PL.LEFT_SHOULDER, PL.RIGHT_SHOULDER, PL.LEFT_ELBOW, PL.RIGHT_ELBOW, PL.LEFT_WRIST, PL.RIGHT_WRIST):
+        nose = landmarks[PL.NOSE]
+        l_sh, r_sh = landmarks[PL.LEFT_SHOULDER], landmarks[PL.RIGHT_SHOULDER]
+        l_el, r_el = landmarks[PL.LEFT_ELBOW], landmarks[PL.RIGHT_ELBOW]
+        l_wr, r_wr = landmarks[PL.LEFT_WRIST], landmarks[PL.RIGHT_WRIST]
+
+        l_close = (_dist(l_wr, nose) <= TH.guard_wrist_to_face_scale * scale) or (
+            _dist(l_wr, l_sh) <= TH.guard_wrist_to_shoulder_scale * scale
+        )
+        r_close = (_dist(r_wr, nose) <= TH.guard_wrist_to_face_scale * scale) or (
+            _dist(r_wr, r_sh) <= TH.guard_wrist_to_shoulder_scale * scale
+        )
+        l_elbow_bent = _angle_deg(l_sh, l_el, l_wr) <= TH.guard_elbow_angle_max
+        r_elbow_bent = _angle_deg(r_sh, r_el, r_wr) <= TH.guard_elbow_angle_max
+
+        if l_close and r_close and l_elbow_bent and r_elbow_bent:
+            return "GUARD"
+
+    # --- PUNCH 検出（左右どちらか） ---
+    # 目的: 腕を伸ばして肩より前に突き出す動き。肩高さと大きくズレる（上下にブレる）場合は除外。
+    # 調整ポイント:
+    # - 伸び判定: punch_elbow_angle_min（高いほど完全伸展のみ）
+    # - 前方距離: punch_wrist_to_shoulder_scale
+    # - 高さ整合: punch_wrist_y_align_scale（小さいほど厳格）
+    punch_left = False
+    punch_right = False
+    if has(PL.LEFT_SHOULDER, PL.LEFT_ELBOW, PL.LEFT_WRIST):
+        l_sh, l_el, l_wr = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_ELBOW], landmarks[PL.LEFT_WRIST]
+        l_elbow_angle = _angle_deg(l_sh, l_el, l_wr)
+        l_wrist_far = _dist(l_wr, l_sh) >= TH.punch_wrist_to_shoulder_scale * scale
+        l_wrist_y_align = abs(l_wr.y - l_sh.y) <= TH.punch_wrist_y_align_scale * scale
+        punch_left = (l_elbow_angle >= TH.punch_elbow_angle_min) and l_wrist_far and l_wrist_y_align
+
+    if has(PL.RIGHT_SHOULDER, PL.RIGHT_ELBOW, PL.RIGHT_WRIST):
+        r_sh, r_el, r_wr = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_ELBOW], landmarks[PL.RIGHT_WRIST]
+        r_elbow_angle = _angle_deg(r_sh, r_el, r_wr)
+        r_wrist_far = _dist(r_wr, r_sh) >= TH.punch_wrist_to_shoulder_scale * scale
+        r_wrist_y_align = abs(r_wr.y - r_sh.y) <= TH.punch_wrist_y_align_scale * scale
+        punch_right = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_far and r_wrist_y_align
+
+    if punch_left or punch_right:
+        return "PUNCH"
+
+    # --- KICK 検出（左右どちらか） ---
+    # 目的: 脚を前に伸ばし上げる動き。直立での誤検出を避けるため、x方向の前方移動量または足首が膝より上を要求。
+    # 調整ポイント:
+    # - 伸び判定: kick_knee_angle_min
+    # - 前方距離: kick_ankle_x_to_hip_scale（大きく→厳しい）
+    # - 上昇量: kick_ankle_above_knee_scale（大きく→検出しやすい）
+    kick_left = False
+    kick_right = False
+    if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE):
+        l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
+        l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
+        # 誤検出抑止: x方向の前方移動量 or 足首が膝より高い
+        l_ankle_far_x = abs(l_an.x - l_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
+        l_ankle_above_knee = (l_an.y + TH.kick_ankle_above_knee_scale * scale) <= l_kn.y
+        kick_left = (l_knee_angle >= TH.kick_knee_angle_min) and (l_ankle_far_x or l_ankle_above_knee)
+
+    if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE):
+        r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
+        r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
+        r_ankle_far_x = abs(r_an.x - r_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
+        r_ankle_above_knee = (r_an.y + TH.kick_ankle_above_knee_scale * scale) <= r_kn.y
+        kick_right = (r_knee_angle >= TH.kick_knee_angle_min) and (r_ankle_far_x or r_ankle_above_knee)
+
+    if kick_left or kick_right:
+        return "KICK"
+
+    return "IDLE"
+
+
+def classify_pose_from_results(results) -> str:
+    """MediaPipe の results から直接判定。pose_landmarks が無ければ "IDLE"。"""
+    if not getattr(results, "pose_landmarks", None):
+        return "IDLE"
+    return classify_pose_from_landmarks(results.pose_landmarks.landmark)
+
+
+# 簡易動作テスト（任意）: カメラから読み取り、現在のポーズ名を標準出力
+if __name__ == "__main__":  # pragma: no cover
+    import cv2
+    try:
+        import mediapipe as mp
+    except Exception as e:
+        print("mediapipe が見つかりません:", e)
+        raise SystemExit(1)
+
+    mp_pose = mp.solutions.pose
+
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Camera not found.")
+        raise SystemExit(1)
+
+    window_name = "PoseLogic Demo - press q to quit"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+
+    with mp_pose.Pose(model_complexity=1, enable_segmentation=False) as pose:
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            rgb.flags.writeable = False
+            results = pose.process(rgb)
+
+            pose_name = classify_pose_from_results(results)
+            if pose_name != "IDLE":
+                print(pose_name)
+
+            vis = frame.copy()
+            if getattr(results, "pose_landmarks", None):
+                mp.solutions.drawing_utils.draw_landmarks(
+                    vis, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
+                )
+            cv2.putText(vis, pose_name, (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 255), 2, cv2.LINE_AA)
+            cv2.imshow(window_name, vis)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    cap.release()
+    cv2.destroyAllWindows()

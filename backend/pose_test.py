@@ -6,8 +6,14 @@ Task 1.2: Webカメラを起動し、MediaPipeで骨格ランドマークを取�
 import cv2
 import mediapipe as mp
 
+# 追加: 2.1 のポーズ判定ロジック
+from pose_logic import classify_pose_from_results
+
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
+
+# フレーム間スムージング設定: 同じポーズがこのフレーム数続いたら確定
+SMOOTHING_STREAK = 3
 
 
 def main():
@@ -29,6 +35,10 @@ def main():
         pass
 
     with mp_pose.Pose(model_complexity=1, enable_segmentation=False) as pose:
+        # スムージング用状態
+        stable_pose_name = "IDLE"
+        candidate_pose = None
+        candidate_count = 0
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -38,18 +48,30 @@ def main():
             rgb.flags.writeable = False
             results = pose.process(rgb)
 
-            # 出力
-            if results.pose_landmarks:
-                lm = results.pose_landmarks.landmark
-                # 例: 肩・肘・手首の一部を出力
-                indices = [11, 13, 15, 12, 14, 16]  # 左右肩/肘/手首
-                coords = [(i, round(lm[i].x, 3), round(lm[i].y, 3), round(lm[i].z, 3)) for i in indices]
-                print(coords)
+            # 現在フレームの生ポーズ推定
+            pose_raw = classify_pose_from_results(results)
 
-            # ビジュアライズ（任意）
+            # ヒステリシス: 一定フレーム同じなら確定
+            if pose_raw == stable_pose_name:
+                candidate_pose = None
+                candidate_count = 0
+            else:
+                if pose_raw == candidate_pose:
+                    candidate_count += 1
+                else:
+                    candidate_pose = pose_raw
+                    candidate_count = 1
+                if candidate_count >= SMOOTHING_STREAK:
+                    stable_pose_name = candidate_pose
+                    print("POSE:", stable_pose_name)
+                    candidate_pose = None
+                    candidate_count = 0
+
+            # ビジュアライズ（確定ポーズを表示）
             vis = frame.copy()
             if results.pose_landmarks:
                 mp_drawing.draw_landmarks(vis, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+            cv2.putText(vis, stable_pose_name, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2, cv2.LINE_AA)
             cv2.imshow(window_name, vis)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
