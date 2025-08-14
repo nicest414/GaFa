@@ -40,11 +40,11 @@ python -c "import mediapipe as mp; print(mp.__version__)"  # 0.10系ならOK
 ## 動作確認（タスク1.3〜2.4）
 事前に仮想環境を有効化しておくこと（.venv）。
 
-- 1.3 Webサーバーテスト（Hello World）
+- 1.3 (済)Webサーバーテスト（Hello World）
   - 起動: `python backend/app.py`
   - 確認: ブラウザで http://127.0.0.1:5000 → "Hello World" が表示
 
-- 1.4 ゲーム描画テスト（p5.js）
+- 1.4 (済)ゲーム描画テスト（p5.js）
   - `frontend/index.html` をブラウザで開く
   - 期待: 640x480 キャンバスに円が表示、矢印キーで円が動く
 
