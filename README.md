@@ -57,8 +57,8 @@ python -c "import mediapipe as mp; print(mp.__version__)"  # 0.10系ならOK
   - WSエンドポイント: `ws://127.0.0.1:5000/ws`（JSON: {"pose":"..."}）
 
 - 2.3 WebSocketクライアント（受信）
-  - サーバー起動中に `frontend/index.html` を開く
-  - ブラウザのコンソールで `WS connected` ログが出る
+  - サーバー起動中に `frontend/index.html` を開く（同一オリジンでない場合は手動で `ws://127.0.0.1:5000/ws` に接続）
+  - 画面下部に WS 状態 (open/closed) が表示される
 
 - 2.4 描画へのリアルタイム反映
   - カメラ前でポーズを取る
@@ -66,6 +66,13 @@ python -c "import mediapipe as mp; print(mp.__version__)"  # 0.10系ならOK
     - KICK: 片脚を高く上げる → 円がオレンジ
     - GUARD: 両手を顔前で上げて近づける → 円が青
     - IDLE: それ以外 → 円が黄
+  - テスト用: 画面下の各ボタン (IDLE/PUNCH/KICK/GUARD) を押すとそのポーズを擬似的に反映（サーバ未起動でも色確認可）
+
+### 追加: WebSocket 実装メモ
+`backend/app.py` に `/ws` を追加。接続中は 30FPS 目安で `{pose: <NAME>, ts: <epoch_seconds>}` を送信。
+現状は接続ごとにカメラを占有するため多重接続非対応。複数クライアントが必要なら共有キャプチャ+ブロードキャスト層を追加する。
+
+フロント (`sketch.js`) はページホスト基準で `ws(s)://<host>/ws` に接続し、受信 pose に応じて円の色を変化。テストボタンは `testPose` をサーバへ送るがサーバ側では現状無視（ログ用途拡張余地）。
 
 ## プロジェクト構成
 ```
