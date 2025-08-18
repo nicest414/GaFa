@@ -13,7 +13,18 @@
   </head>
   <body>
     <div id="container"></div>
-    <div class="hint">矢印キーで円を動かせます</div>
+    <div class="hint">
+      <div>矢印キーで円を動かせます / カメラポーズで色変化</div>
+      <div style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
+        <button data-pose="IDLE">IDLE</button>
+        <button data-pose="PUNCH" style="color:#f55">PUNCH</button>
+        <button data-pose="KICK" style="color:#fa3">KICK</button>
+        <button data-pose="GUARD" style="color:#5af">GUARD</button>
+        <button id="reconnect">Reconnect WS</button>
+        <button id="test_mode" style="background:#444;">Test Mode: OFF</button>
+        <span id="ws_status" style="margin-left:6px;">WS: init</span>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js"></script>
     <script src="sketch.js"></script>
