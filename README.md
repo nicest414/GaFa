@@ -2,13 +2,15 @@
 画像認識ファイターズ / Webカメラのポーズで操作する対戦ゲーム（プロトタイプ）
 
 ## 技術スタック
+- 開発環境: Docker, Docker Compose
 - フロントエンド: p5.js（CDN読込）
 - バックエンド: Flask + Flask-Sock（WebSocket）
 - 主要ライブラリ: OpenCV, MediaPipe
+- 実行サーバー: Gunicorn
 - デプロイ想定: Railway/Heroku + Gunicorn（WSはワーカ調整が必要）
 
 ## 必要環境
-- Python 3.11 系（MediaPipe互換のため必須）
+- Docker Desktop
 - Git（任意）
 - Webカメラ
 - OS: Windows/Mac/Linux（開発は主にWindows想定）
@@ -16,51 +18,37 @@
 ## セットアップ
 1) 仮想環境の作成・有効化（Windows PowerShell 例）
 ```
-py -3.11 -m venv .venv
-./.venv/Scripts/Activate.ps1
-python -V  # 3.11.x が表示されればOK
+docker compose up --build
 ```
-macOS/Linux の例:
-```
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -V
-```
+コードの変更を反映する時も上記コマンドを実行するだけでOKです。
 
-2) 依存関係のインストール
-```
-pip install -U pip setuptools wheel
-pip install -r requirements.txt
-```
-（確認）
-```
-python -c "import mediapipe as mp; print(mp.__version__)"  # 0.10系ならOK
-```
 
-## 動作確認（タスク1.3〜2.4）
-事前に仮想環境を有効化しておくこと（.venv）。
+## 動作確認
 
-- 1.3 (済)Webサーバーテスト（Hello World）
-  - 起動: `python backend/app.py`
-  - 確認: ブラウザで http://127.0.0.1:5000 → "Hello World" が表示
+1.  **サーバーを起動**
+    プロジェクトのルートで以下のコマンドを実行します。
+    ```bash
+    docker compose up --build
+    ```
 
-- 1.4 (済)ゲーム描画テスト（p5.js）
-  - `frontend/index.html` をブラウザで開く
-  - 期待: 640x480 キャンバスに円が表示、矢印キーで円が動く
+2.  **ゲーム画面にアクセス**
+    ブラウザで `http://localhost:8000` を開きます。
+    - 640x480のキャンバスに円が表示されます。
+    - 矢印キーで円を自由に動かせます。
 
-- 2.1 ポーズ判定ロジック（単体）
+3.  **ポーズ判定ロジック（単体）**
   - 実行: `python backend/pose_test.py`（終了は q キー）
   - 期待: 骨格が描画され、ターミナルにランドマーク座標が出力される
 
-- 2.2 WebSocketサーバー（配信）
+4.  **WebSocketサーバー（配信）**
   - 実行: `python backend/app.py`
   - WSエンドポイント: `ws://127.0.0.1:5000/ws`（JSON: {"pose":"..."}）
 
-- 2.3 WebSocketクライアント（受信）
+5.  **WebSocketクライアント（受信）**
   - サーバー起動中に `frontend/index.html` を開く（同一オリジンでない場合は手動で `ws://127.0.0.1:5000/ws` に接続）
   - 画面下部に WS 状態 (open/closed) が表示される
 
-- 2.4 描画へのリアルタイム反映
+6.  **描画へのリアルタイム反映**
   - カメラ前でポーズを取る
     - PUNCH: 片腕を前に突き出す → 円が赤
     - KICK: 片脚を高く上げる → 円がオレンジ
@@ -80,10 +68,10 @@ backend/
   app.py            # Flask + Flask-Sock（/ と /ws）
   pose_logic.py     # ポーズ4分類（PUNCH/KICK/GUARD/IDLE）
   pose_test.py      # カメラ+MediaPipe単体テスト
+  requirements.txt  # 依存
 frontend/
   index.html        # p5.js ローダ
   sketch.js         # 円の移動＋WS受信で色変更
-requirements.txt    # 依存
 Procfile            # Gunicorn 起動（要WS対応の調整検討）
 runtime.txt         # python-3.11.9
 ```
@@ -108,3 +96,6 @@ runtime.txt         # python-3.11.9
 
 ## ライセンス
 - 素材（サウンド/画像）利用時は各ライセンスに従うこと。
+
+
+docker-compose up --build
