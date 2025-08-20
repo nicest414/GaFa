@@ -1,7 +1,10 @@
 // filepath: c:\\Users\\ketya\\GaFa\\frontend\\sketch.js
-let x = 200;
-let y = 200;
-let speed = 4;
+
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js";
+let video;
+let lastPose = "";
+let lastPoseTimestamp = 0;
+let x = 200, y = 200, speed = 4;
 
 // 現在受信中のポーズ
 let currentPose = 'IDLE';
@@ -14,19 +17,37 @@ const poseColors = {
   GUARD: [80, 170, 255]
 };
 
-let ws = null;
-let wsStatusEl = null;
-let useTestEndpoint = false;  // テスト用エンドポイント切り替え
+let ws = null, wsStatusEl = null, useTestEndpoint = false;  // テスト用エンドポイント切り替え
+
+
+// MediaPipeの初期化処理
+async function createPoseLandmarker() {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+  );
+  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+      delegate: "GPU"
+    },
+    runningMode: "VIDEO",
+    numPoses: 1
+  });
+  console.log("PoseLandmarker created");
+}
 
 function connectWS() {
   if (ws) {
-    try { ws.close(); } catch(e) {}
+    try { ws.close(); } catch (e) { }
   }
+  
   const endpoint = useTestEndpoint ? '/test' : '/ws';
-  ws = new WebSocket(getWsUrl() + endpoint);
-  if (!wsStatusEl) wsStatusEl = document.getElementById('ws_status');
-  if (wsStatusEl) wsStatusEl.textContent = `WS: connecting... (${endpoint})`;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = protocol + '//' + window.location.host + endpoint;
 
+  ws = new WebSocket(wsUrl);
+  if (!wsStatusEl) wsStatusEl = document.getElementById('ws_status');
+  if (wsStatusEl) wsStatusEl.textContent = `WS: connecting... (${wsUrl})`;
   ws.onopen = () => {
     if (wsStatusEl) wsStatusEl.textContent = `WS: open (${endpoint})`;
   };
@@ -49,11 +70,6 @@ function connectWS() {
   };
 }
 
-function getWsUrl() {
-  // websocketsライブラリ版サーバー用（ポート5001）
-  return 'ws://127.0.0.1:5001';
-}
-
 function setupButtons() {
   // テスト送信ボタン: 指定ポーズをクライアント内で直接反映 & サーバへ送信(モック用途)
   document.querySelectorAll('button[data-pose]').forEach(btn => {
@@ -63,14 +79,14 @@ function setupButtons() {
         currentPose = pose; // ローカル即時反映
         // サーバへ通知(必須ではないがログ用途) - 簡易プロトコル
         if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({testPose: pose}));
+          ws.send(JSON.stringify({ testPose: pose }));
         }
       }
     });
   });
   const reconnectBtn = document.getElementById('reconnect');
   reconnectBtn?.addEventListener('click', () => connectWS());
-  
+
   // テストモード切り替えボタン
   const testModeBtn = document.getElementById('test_mode');
   testModeBtn?.addEventListener('click', () => {
@@ -81,16 +97,54 @@ function setupButtons() {
   });
 }
 
-function setup() {
-  const canvas = createCanvas(640, 480);
+async function setup() {
+  const width = 640, height = 480
+  const canvas = createCanvas(width, height);
   canvas.parent("container");
   noStroke();
+
+  await createPoseLandmarker();
+
+  // ✨変更: p5.jsでカメラを起動
+  video = createCapture(VIDEO);
+  video.size(width, height);
+  video.hide(); // p5が自動で描画する映像は非表示にする
+
   setupButtons();
   connectWS();
 }
 
 function draw() {
   background(20);
+
+  // ✨追加: カメラ映像をキャンバスに描画 (左右反転)
+  push();
+  translate(width, 0);
+  scale(-1, 1);
+  image(video, 0, 0, width, height);
+  pop();
+
+  // ✨追加: MediaPipeでポーズを予測
+  if (poseLandmarker && video.elt.readyState === 4) {
+    const startTimeMs = performance.now();
+    poseLandmarker.detectForVideo(video.elt, startTimeMs, (result) => {
+      if (result.landmarks && result.landmarks.length > 0) {
+        // サーバーにある pose_logic.py のロジックをJSに移植
+        const pose = classifyPoseFromLandmarks(result.landmarks[0]);
+        if (pose && (pose !== lastPose || Date.now() - lastPoseTimestamp > 1000)) {
+          // ポーズが変化したか、1秒経過した場合のみ送信
+          currentPose = pose;
+          lastPose = pose;
+          lastPoseTimestamp = Date.now();
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            // サーバーにポーズ情報を送信！
+            ws.send(JSON.stringify({ pose: currentPose }));
+          }
+        }
+      }
+    });
+  }
+
   // 入力
   if (keyIsDown(LEFT_ARROW)) x -= speed;
   if (keyIsDown(RIGHT_ARROW)) x += speed;

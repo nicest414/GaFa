@@ -1,0 +1,6 @@
+flask
+flask-sock
+gunicorn
+gevent
+# opencv-python
+# mediapipe
