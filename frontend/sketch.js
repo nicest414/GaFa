@@ -5,6 +5,8 @@ let video;
 let lastPose = "";
 let lastPoseTimestamp = 0;
 let x = 200, y = 200, speed = 4;
+// 追加: poseLandmarker 変数を事前宣言（未定義エラー防止）
+let poseLandmarker = null;
 
 // 現在受信中のポーズ
 let currentPose = 'IDLE';
@@ -165,3 +167,7 @@ function draw() {
   textSize(16);
   text(currentPose, 10, 20);
 }
+
+// 追加: module 内でも p5 がこれらを見つけられるように window に公開
+window.setup = setup;
+window.draw = draw;

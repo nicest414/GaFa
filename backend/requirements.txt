@@ -1,6 +1,7 @@
 flask
 flask-sock
+opencv-python
+mediapipe
+# 本番サーバ / WebSocket 対応
 gunicorn
 gevent
-# opencv-python
-# mediapipe
