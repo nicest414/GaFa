@@ -100,31 +100,37 @@ function setupButtons() {
 }
 
 async function setup() {
-  const width = 640, height = 480
-  const canvas = createCanvas(width, height);
+  console.log("Setup starting...");
+  const canvasWidth = 640, canvasHeight = 480
+  const canvas = createCanvas(canvasWidth, canvasHeight);
   canvas.parent("container");
   noStroke();
-
+  
+  console.log("Canvas created, initializing MediaPipe...");
   await createPoseLandmarker();
 
   // ✨変更: p5.jsでカメラを起動
+  console.log("Creating video capture...");
   video = createCapture(VIDEO);
-  video.size(width, height);
+  video.size(canvasWidth, canvasHeight);
   video.hide(); // p5が自動で描画する映像は非表示にする
 
   setupButtons();
   connectWS();
+  console.log("Setup complete!");
 }
 
 function draw() {
   background(20);
-
+  
   // ✨追加: カメラ映像をキャンバスに描画 (左右反転)
-  push();
-  translate(width, 0);
-  scale(-1, 1);
-  image(video, 0, 0, width, height);
-  pop();
+  if (video && video.elt && video.elt.readyState >= 2) {
+    push();
+    translate(width, 0);
+    scale(-1, 1);
+    image(video, 0, 0, width, height);
+    pop();
+  }
 
   // ✨追加: MediaPipeでポーズを予測
   if (poseLandmarker && video.elt.readyState === 4) {
@@ -155,11 +161,15 @@ function draw() {
 
   // 画面端でラップ
   x = (x + width) % width;
-  y = (y + height) % height;
-
-  // 色決定
+  y = (y + height) % height;  // 色決定
   const col = poseColors[currentPose] || poseColors.IDLE;
   fill(...col);
+  
+  // デバッグ用: 円の位置と色をコンソールに出力（最初の10フレームのみ）
+  if (frameCount <= 10) {
+    console.log(`Frame ${frameCount}: x=${x}, y=${y}, pose=${currentPose}, color=[${col.join(',')}]`);
+  }
+  
   circle(x, y, 60);
 
   // 現在ポーズを左上に表示
