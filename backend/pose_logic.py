@@ -166,6 +166,7 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
     # 調整ポイント:
     # - 近さ判定: guard_wrist_to_face_scale / guard_wrist_to_shoulder_scale
     # - 曲がり判定: guard_elbow_angle_max（小さくすると「より曲げている」必要）
+    guard_cond = False
     if has(PL.NOSE, PL.LEFT_SHOULDER, PL.RIGHT_SHOULDER, PL.LEFT_ELBOW, PL.RIGHT_ELBOW, PL.LEFT_WRIST, PL.RIGHT_WRIST):
         nose = landmarks[PL.NOSE]
         l_sh, r_sh = landmarks[PL.LEFT_SHOULDER], landmarks[PL.RIGHT_SHOULDER]
@@ -180,9 +181,7 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
         )
         l_elbow_bent = _angle_deg(l_sh, l_el, l_wr) <= TH.guard_elbow_angle_max
         r_elbow_bent = _angle_deg(r_sh, r_el, r_wr) <= TH.guard_elbow_angle_max
-
-        if l_close and r_close and l_elbow_bent and r_elbow_bent:
-            return "GUARD"
+        guard_cond = l_close and r_close and l_elbow_bent and r_elbow_bent
 
     # --- PUNCH 検出（左右どちらか） ---
     # 目的: 腕を伸ばして肩より前に突き出す動き。肩高さと大きくズレる（上下にブレる）場合は除外。
@@ -206,8 +205,7 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
         r_wrist_y_align = abs(r_wr.y - r_sh.y) <= TH.punch_wrist_y_align_scale * scale
         punch_right = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_far and r_wrist_y_align
 
-    if punch_left or punch_right:
-        return "PUNCH"
+    punch_cond = punch_left or punch_right
 
     # --- KICK 検出（左右どちらか） ---
     # 目的: 脚を前に伸ばし上げる動き。直立での誤検出を避けるため、x方向の前方移動量または足首が膝より上を要求。
@@ -232,10 +230,160 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
         r_ankle_above_knee = (r_an.y + TH.kick_ankle_above_knee_scale * scale) <= r_kn.y
         kick_right = (r_knee_angle >= TH.kick_knee_angle_min) and (r_ankle_far_x or r_ankle_above_knee)
 
-    if kick_left or kick_right:
-        return "KICK"
+    kick_cond = kick_left or kick_right
 
-    return "IDLE"
+    # --- FORWARD 検出（前傾姿勢） ---
+    # 目的: 上半身が前に傾く（肩-腰の角度が前方15度以上）
+    forward_left = False
+    forward_right = False
+    # 左側
+    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP):
+        l_sh, l_hip = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_HIP]
+        # 肩-腰ベクトルのx方向角度
+        dx = l_sh.x - l_hip.x
+        dy = l_sh.y - l_hip.y
+        angle_rad = math.atan2(dx, dy)
+        angle_deg = math.degrees(angle_rad)
+        # 前方（x方向）に15度以上傾いている
+        forward_left = angle_deg >= 15.0
+
+    # 右側
+    if has(PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
+        r_sh, r_hip = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_HIP]
+        dx = r_sh.x - r_hip.x
+        dy = r_sh.y - r_hip.y
+        angle_rad = math.atan2(dx, dy)
+        angle_deg = math.degrees(angle_rad)
+        forward_right = angle_deg >= 15.0
+
+    forward_cond = forward_left or forward_right
+
+    # --- BACKWARD 検出（後傾姿勢） ---
+    # 目的: 上半身が後ろに傾く（肩-腰の角度が後方10度以上）
+    backward_left = False
+    backward_right = False
+    # 左側
+    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP):
+        l_sh, l_hip = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_HIP]
+        dx = l_sh.x - l_hip.x
+        dy = l_sh.y - l_hip.y
+        angle_rad = math.atan2(dx, dy)
+        angle_deg = math.degrees(angle_rad)
+        # 後方（x方向）に-10度以下傾いている
+        backward_left = angle_deg <= -10.0
+
+    # 右側
+    if has(PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
+        r_sh, r_hip = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_HIP]
+        dx = r_sh.x - r_hip.x
+        dy = r_sh.y - r_hip.y
+        angle_rad = math.atan2(dx, dy)
+        angle_deg = math.degrees(angle_rad)
+        backward_right = angle_deg <= -10.0
+
+    backward_cond = backward_left or backward_right
+
+    # --- CROUCH 検出（左右どちらか） ---
+    # 目的: 膝が大きく曲がり、腰が下がる（膝角度90度以下）
+    crouch_left = False
+    crouch_right = False
+    if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE):
+        l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
+        l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
+        # 腰が膝より下（y値が大きい＝下がっている）
+        l_hip_down = l_hip.y > l_kn.y
+        crouch_left = (l_knee_angle <= 90.0) and l_hip_down
+
+    if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE):
+        r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
+        r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
+        r_hip_down = r_hip.y > r_kn.y
+        crouch_right = (r_knee_angle <= 90.0) and r_hip_down
+
+    crouch_cond = crouch_left or crouch_right
+
+    # --- CROUCH_PUNCH 検出（しゃがみ＋片腕伸展） ---
+    crouch_punch_left = False
+    crouch_punch_right = False
+    # 左側
+    if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE, PL.LEFT_SHOULDER, PL.LEFT_ELBOW, PL.LEFT_WRIST):
+        l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
+        l_sh, l_el, l_wr = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_ELBOW], landmarks[PL.LEFT_WRIST]
+        l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
+        l_hip_down = l_hip.y > l_kn.y
+        crouch_cond = (l_knee_angle <= 90.0) and l_hip_down
+        l_elbow_angle = _angle_deg(l_sh, l_el, l_wr)
+        l_wrist_far = _dist(l_wr, l_sh) >= TH.punch_wrist_to_shoulder_scale * scale
+        l_wrist_y_align = abs(l_wr.y - l_sh.y) <= TH.punch_wrist_y_align_scale * scale
+        punch_cond = (l_elbow_angle >= TH.punch_elbow_angle_min) and l_wrist_far and l_wrist_y_align
+        crouch_punch_left = crouch_cond and punch_cond
+
+    # 右側
+    if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE, PL.RIGHT_SHOULDER, PL.RIGHT_ELBOW, PL.RIGHT_WRIST):
+        r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
+        r_sh, r_el, r_wr = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_ELBOW], landmarks[PL.RIGHT_WRIST]
+        r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
+        r_hip_down = r_hip.y > r_kn.y
+        crouch_cond = (r_knee_angle <= 90.0) and r_hip_down
+        r_elbow_angle = _angle_deg(r_sh, r_el, r_wr)
+        r_wrist_far = _dist(r_wr, r_sh) >= TH.punch_wrist_to_shoulder_scale * scale
+        r_wrist_y_align = abs(r_wr.y - r_sh.y) <= TH.punch_wrist_y_align_scale * scale
+        punch_cond = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_far and r_wrist_y_align
+        crouch_punch_right = crouch_cond and punch_cond
+
+    crouch_punch_cond = crouch_punch_left or crouch_punch_right
+
+    # --- CROUCH_KICK 検出（しゃがみ＋片脚前方伸展） ---
+    crouch_kick_left = False
+    crouch_kick_right = False
+    # 左側
+    if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE):
+        l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
+        l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
+        l_hip_down = l_hip.y > l_kn.y
+        crouch_cond = (l_knee_angle <= 90.0) and l_hip_down
+        # KICK条件（高く上げずに前方のみ）
+        l_knee_stretch = l_knee_angle >= TH.kick_knee_angle_min
+        l_ankle_far_x = abs(l_an.x - l_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
+        kick_cond = l_knee_stretch and l_ankle_far_x
+        crouch_kick_left = crouch_cond and kick_cond
+
+    # 右側
+    if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE):
+        r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
+        r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
+        r_hip_down = r_hip.y > r_kn.y
+        crouch_cond = (r_knee_angle <= 90.0) and r_hip_down
+        r_knee_stretch = r_knee_angle >= TH.kick_knee_angle_min
+        r_ankle_far_x = abs(r_an.x - r_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
+        kick_cond = r_knee_stretch and r_ankle_far_x
+        crouch_kick_right = crouch_cond and kick_cond
+
+    crouch_kick_cond = crouch_kick_left or crouch_kick_right
+
+    # --- CROUCH_GUARD 検出（しゃがみ＋両手ガード） ---
+    crouch_guard_cond = crouch_cond and guard_cond
+
+    # --- 優先順位で判定 ---
+    if crouch_punch_cond:
+        return "CROUCH_PUNCH"
+    if crouch_kick_cond:
+        return "CROUCH_KICK"
+    if punch_cond:
+        return "PUNCH"
+    if kick_cond:
+        return "KICK"
+    if crouch_guard_cond:
+        return "CROUCH_GUARD"
+    if guard_cond:
+        return "GUARD"
+    if crouch_cond:
+        return "CROUCH"
+    if forward_cond:
+        return "FORWARD"
+    if backward_cond:
+        return "BACKWARD"
+    return "STAND"
 
 
 def classify_pose_from_results(results) -> str:
