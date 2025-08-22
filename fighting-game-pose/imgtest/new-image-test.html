@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📁 新規画像テスト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .upload-zone {
+            border: 3px dashed #4ecdc4;
+            border-radius: 15px;
+            padding: 50px 20px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+        
+        .upload-zone:hover {
+            border-color: #ff6b6b;
+            background: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .upload-zone.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+        }
+        
+        .upload-text {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .upload-subtext {
+            color: #666;
+            font-size: 1em;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .results-container {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .results-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .image-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .image-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #4ecdc4;
+        }
+        
+        .image-preview {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #fff;
+        }
+        
+        .image-info {
+            text-align: center;
+        }
+        
+        .image-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            word-break: break-all;
+            font-size: 0.9em;
+        }
+        
+        .image-details {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .image-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .clear-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-button:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .canvas-test {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        
+        .canvas-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .canvas-item {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .test-canvas {
+            border: 2px solid #4ecdc4;
+            border-radius: 8px;
+            background: white;
+            margin-bottom: 10px;
+        }
+        
+        .canvas-label {
+            font-size: 0.9em;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .canvas-status {
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .frame-controls {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .frame-button {
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s ease;
+        }
+
+        .frame-button:hover {
+            background: #45b7b8;
+        }
+
+        .frame-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .frame-info {
+            font-size: 0.8em;
+            color: #333;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        .frame-slider {
+            width: 100px;
+            margin: 0 5px;
+        }
+
+        .animation-canvas {
+            border: 2px solid #ff6b6b;
+            margin-top: 10px;
+        }
+
+        .frame-analysis {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.8em;
+        }
+
+        .frame-analysis strong {
+            color: #333;
+        }
+
+        .auto-play-controls {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .play-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .play-button:hover {
+            background: #218838;
+        }
+
+        .play-button.playing {
+            background: #dc3545;
+        }
+
+        .speed-control {
+            font-size: 0.8em;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 新規画像テスト</h1>
+            <p>新しい画像ファイルの互換性と動作をテストします</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- アップロードエリア -->
+            <div class="upload-zone" id="upload-zone">
+                <div class="upload-icon">📎</div>
+                <div class="upload-text">画像ファイルをドラッグ&ドロップ</div>
+                <div class="upload-subtext">または、ここをクリックしてファイルを選択</div>
+                <input type="file" id="file-input" class="file-input" multiple accept="image/*">
+            </div>
+            
+            <!-- 統計 -->
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-files">0</div>
+                    <div class="stat-label">総ファイル数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="success-files">0</div>
+                    <div class="stat-label">読み込み成功</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="error-files">0</div>
+                    <div class="stat-label">読み込み失敗</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="success-rate">0%</div>
+                    <div class="stat-label">成功率</div>
+                </div>
+            </div>
+            
+            <!-- 結果表示 -->
+            <div class="results-container" id="results-container" style="display: none;">
+                <div class="results-title">
+                    <span>🖼️</span>
+                    <span>テスト結果</span>
+                </div>
+                <div class="image-grid" id="image-grid"></div>
+                <button class="clear-button" onclick="clearResults()">🗑️ 結果をクリア</button>
+            </div>
+            
+            <!-- キャンバステスト -->
+            <div class="canvas-test" id="canvas-test" style="display: none;">
+                <div class="results-title">
+                    <span>🎨</span>
+                    <span>キャンバス描画テスト</span>
+                </div>
+                <div class="canvas-container" id="canvas-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = {
+            total: 0,
+            success: 0,
+            error: 0,
+            files: []
+        };
+
+        // DOM要素取得
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const imageGrid = document.getElementById('image-grid');
+        const resultsContainer = document.getElementById('results-container');
+        const canvasTest = document.getElementById('canvas-test');
+        const canvasContainer = document.getElementById('canvas-container');
+        const stats = document.getElementById('stats');
+
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // クリックでファイル選択
+            uploadZone.addEventListener('click', () => fileInput.click());
+            
+            // ファイル選択時
+            fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+            
+            // ドラッグ&ドロップ
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+            
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        // ファイル処理
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            console.log(`📁 ${files.length}個のファイルをテスト開始...`);
+            
+            // 結果をリセット
+            testResults = { total: 0, success: 0, error: 0, files: [] };
+            imageGrid.innerHTML = '';
+            canvasContainer.innerHTML = '';
+            
+            // 各ファイルを処理
+            Array.from(files).forEach((file, index) => {
+                testFile(file, index);
+            });
+            
+            // UI表示
+            showResults();
+        }
+
+        // 単一ファイルテスト
+        function testFile(file, index) {
+            testResults.total++;
+            
+            const fileData = {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                index: index,
+                success: false,
+                error: null,
+                dimensions: null,
+                dataUrl: null
+            };
+
+            // ファイル読み込み
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                fileData.dataUrl = e.target.result;
+                
+                // 画像として読み込みテスト
+                const img = new Image();
+                
+                img.onload = function() {
+                    fileData.success = true;
+                    fileData.dimensions = {
+                        width: img.naturalWidth,
+                        height: img.naturalHeight
+                    };
+                    
+                    testResults.success++;
+                    console.log(`✅ ${file.name} - 読み込み成功 (${img.naturalWidth}x${img.naturalHeight})`);
+                    
+                    displayFileResult(fileData, img);
+                    createCanvasTest(fileData, img);
+                    updateStats();
+                };
+                
+                img.onerror = function() {
+                    fileData.error = '画像として読み込めません';
+                    testResults.error++;
+                    console.error(`❌ ${file.name} - 読み込み失敗`);
+                    
+                    displayFileResult(fileData, null);
+                    updateStats();
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = function() {
+                fileData.error = 'ファイル読み込みエラー';
+                testResults.error++;
+                console.error(`❌ ${file.name} - ファイル読み込み失敗`);
+                
+                displayFileResult(fileData, null);
+                updateStats();
+            };
+            
+            testResults.files.push(fileData);
+            reader.readAsDataURL(file);
+        }
+
+        // ファイル結果表示
+        function displayFileResult(fileData, img) {
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
+            
+            const preview = document.createElement('img');
+            preview.className = 'image-preview';
+            
+            if (img) {
+                preview.src = fileData.dataUrl;
+                preview.alt = fileData.name;
+            } else {
+                preview.style.background = '#f8d7da';
+                preview.alt = 'エラー';
+            }
+            
+            const info = document.createElement('div');
+            info.className = 'image-info';
+            
+            const name = document.createElement('div');
+            name.className = 'image-name';
+            name.textContent = fileData.name;
+            
+            const details = document.createElement('div');
+            details.className = 'image-details';
+            
+            if (fileData.success && fileData.dimensions) {
+                details.innerHTML = `
+                    サイズ: ${Math.round(fileData.size / 1024)}KB<br>
+                    形式: ${fileData.type}<br>
+                    寸法: ${fileData.dimensions.width} × ${fileData.dimensions.height}px
+                `;
+            } else {
+                details.innerHTML = `
+                    サイズ: ${Math.round(fileData.size / 1024)}KB<br>
+                    形式: ${fileData.type}<br>
+                    エラー: ${fileData.error || '不明'}
+                `;
+            }
+            
+            const status = document.createElement('div');
+            status.className = `image-status ${fileData.success ? 'status-success' : 'status-error'}`;
+            status.textContent = fileData.success ? '✅ 読み込み成功' : '❌ 読み込み失敗';
+            
+            info.appendChild(name);
+            info.appendChild(details);
+            info.appendChild(status);
+            
+            imageItem.appendChild(preview);
+            imageItem.appendChild(info);
+            
+            imageGrid.appendChild(imageItem);
+        }
+
+        // キャンバステスト作成
+        function createCanvasTest(fileData, img) {
+            if (!fileData.success || !img) return;
+            
+            canvasTest.style.display = 'block';
+            
+            const canvasItem = document.createElement('div');
+            canvasItem.className = 'canvas-item';
+            
+            const canvas = document.createElement('canvas');
+            canvas.className = 'test-canvas';
+            canvas.width = 150;
+            canvas.height = 150;
+            
+            const label = document.createElement('div');
+            label.className = 'canvas-label';
+            label.textContent = fileData.name;
+            
+            const status = document.createElement('div');
+            status.className = 'canvas-status';
+            
+            try {
+                const ctx = canvas.getContext('2d');
+                
+                // フレーム分析
+                const frames = analyzeFrames(img);
+                
+                // 画像をキャンバスに描画
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                const x = (canvas.width - img.width * scale) / 2;
+                const y = (canvas.height - img.height * scale) / 2;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                
+                status.innerHTML = '<span style="color: #28a745;">✅ 描画成功</span>';
+                console.log(`🎨 ${fileData.name} - キャンバス描画成功`);
+                
+                // フレーム分析結果の表示
+                if (frames.frameCount > 1) {
+                    const frameAnalysis = document.createElement('div');
+                    frameAnalysis.className = 'frame-analysis';
+                    frameAnalysis.innerHTML = `
+                        <strong>フレーム分析結果:</strong><br>
+                        検出フレーム数: ${frames.frameCount}<br>
+                        フレームサイズ: ${frames.frameWidth}x${frames.frameHeight}<br>
+                        総画像サイズ: ${img.width}x${img.height}
+                    `;
+                    
+                    // フレームコントロール
+                    const frameControls = document.createElement('div');
+                    frameControls.className = 'frame-controls';
+                    frameControls.innerHTML = `
+                        <button class="frame-button" onclick="prevFrame('${fileData.name}')">◀</button>
+                        <span class="frame-info" id="frameInfo-${fileData.name}">1 / ${frames.frameCount}</span>
+                        <button class="frame-button" onclick="nextFrame('${fileData.name}')">▶</button>
+                        <input type="range" class="frame-slider" id="frameSlider-${fileData.name}" 
+                               min="0" max="${frames.frameCount - 1}" value="0" 
+                               onchange="gotoFrame('${fileData.name}', this.value)">
+                    `;
+                    
+                    // 自動再生コントロール
+                    const autoPlayControls = document.createElement('div');
+                    autoPlayControls.className = 'auto-play-controls';
+                    autoPlayControls.innerHTML = `
+                        <button class="play-button" id="playButton-${fileData.name}" onclick="toggleAnimation('${fileData.name}')">▶ 再生</button>
+                        <select class="speed-control" id="speedControl-${fileData.name}" onchange="changeAnimationSpeed('${fileData.name}')">
+                            <option value="100">超遅</option>
+                            <option value="250">遅</option>
+                            <option value="500" selected>標準</option>
+                            <option value="750">速</option>
+                            <option value="1000">超速</option>
+                        </select>
+                    `;
+                    
+                    // アニメーション表示用キャンバス
+                    const animationCanvas = document.createElement('canvas');
+                    animationCanvas.className = 'animation-canvas';
+                    animationCanvas.width = frames.frameWidth;
+                    animationCanvas.height = frames.frameHeight;
+                    animationCanvas.id = `animationCanvas-${fileData.name}`;
+                    
+                    canvasItem.appendChild(frameAnalysis);
+                    canvasItem.appendChild(frameControls);
+                    canvasItem.appendChild(autoPlayControls);
+                    canvasItem.appendChild(animationCanvas);
+                    
+                    // フレームデータをグローバルに保存
+                    window.frameData = window.frameData || {};
+                    window.frameData[fileData.name] = {
+                        image: img,
+                        frames: frames,
+                        currentFrame: 0,
+                        isPlaying: false,
+                        animationId: null
+                    };
+                    
+                    // 最初のフレームを表示
+                    drawFrame(fileData.name, 0);
+                }
+                
+            } catch (error) {
+                status.innerHTML = '<span style="color: #dc3545;">❌ 描画失敗</span>';
+                console.error(`🎨 ${fileData.name} - キャンバス描画失敗:`, error);
+            }
+            
+            canvasItem.appendChild(canvas);
+            canvasItem.appendChild(label);
+            canvasItem.appendChild(status);
+            
+            canvasContainer.appendChild(canvasItem);
+        }
+
+        // 統計更新
+        function updateStats() {
+            const successRate = testResults.total > 0 ? 
+                Math.round((testResults.success / testResults.total) * 100) : 0;
+            
+            document.getElementById('total-files').textContent = testResults.total;
+            document.getElementById('success-files').textContent = testResults.success;
+            document.getElementById('error-files').textContent = testResults.error;
+            document.getElementById('success-rate').textContent = `${successRate}%`;
+        }
+
+        // 結果表示
+        function showResults() {
+            stats.style.display = 'grid';
+            resultsContainer.style.display = 'block';
+            canvasTest.style.display = 'block';
+        }
+
+        // 結果クリア
+        function clearResults() {
+            testResults = { total: 0, success: 0, error: 0, files: [] };
+            
+            // フレームデータもクリア
+            if (window.frameData) {
+                for (let key in window.frameData) {
+                    if (window.frameData[key].animationId) {
+                        clearInterval(window.frameData[key].animationId);
+                    }
+                }
+                window.frameData = {};
+            }
+            
+            imageGrid.innerHTML = '';
+            canvasContainer.innerHTML = '';
+            fileInput.value = '';
+            
+            stats.style.display = 'none';
+            resultsContainer.style.display = 'none';
+            canvasTest.style.display = 'none';
+            
+            console.log('🗑️ テスト結果をクリアしました');
+        }
+
+        // フレーム分析関数
+        function analyzeFrames(img) {
+            const width = img.naturalWidth;
+            const height = img.naturalHeight;
+            
+            // 横長の画像はスプライトシートの可能性が高い
+            if (width > height * 1.5) {
+                // 縦横比から推定フレーム数を計算
+                const aspectRatio = width / height;
+                let estimatedFrames = Math.round(aspectRatio);
+                
+                // 一般的なフレーム数に調整
+                if (estimatedFrames > 1 && estimatedFrames <= 20) {
+                    const frameWidth = Math.floor(width / estimatedFrames);
+                    return {
+                        frameCount: estimatedFrames,
+                        frameWidth: frameWidth,
+                        frameHeight: height,
+                        isSprite: true
+                    };
+                }
+            }
+            
+            // 単一フレーム
+            return {
+                frameCount: 1,
+                frameWidth: width,
+                frameHeight: height,
+                isSprite: false
+            };
+        }
+
+        // フレーム描画関数
+        function drawFrame(imageName, frameIndex) {
+            const data = window.frameData[imageName];
+            if (!data) return;
+            
+            const canvas = document.getElementById(`animationCanvas-${imageName}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const frames = data.frames;
+            
+            // フレーム位置計算
+            const sourceX = frameIndex * frames.frameWidth;
+            const sourceY = 0;
+            
+            // キャンバスクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // フレーム描画
+            ctx.drawImage(
+                data.image,
+                sourceX, sourceY, frames.frameWidth, frames.frameHeight,
+                0, 0, canvas.width, canvas.height
+            );
+            
+            // フレーム情報更新
+            const frameInfo = document.getElementById(`frameInfo-${imageName}`);
+            if (frameInfo) {
+                frameInfo.textContent = `${frameIndex + 1} / ${frames.frameCount}`;
+            }
+            
+            // スライダー更新
+            const slider = document.getElementById(`frameSlider-${imageName}`);
+            if (slider) {
+                slider.value = frameIndex;
+            }
+            
+            data.currentFrame = frameIndex;
+        }
+
+        // フレーム制御関数
+        function prevFrame(imageName) {
+            const data = window.frameData[imageName];
+            if (!data) return;
+            
+            const newFrame = (data.currentFrame - 1 + data.frames.frameCount) % data.frames.frameCount;
+            drawFrame(imageName, newFrame);
+        }
+
+        function nextFrame(imageName) {
+            const data = window.frameData[imageName];
+            if (!data) return;
+            
+            const newFrame = (data.currentFrame + 1) % data.frames.frameCount;
+            drawFrame(imageName, newFrame);
+        }
+
+        function gotoFrame(imageName, frameIndex) {
+            drawFrame(imageName, parseInt(frameIndex));
+        }
+
+        // アニメーション制御
+        function toggleAnimation(imageName) {
+            const data = window.frameData[imageName];
+            if (!data) return;
+            
+            const playButton = document.getElementById(`playButton-${imageName}`);
+            
+            if (data.isPlaying) {
+                // 停止
+                clearInterval(data.animationId);
+                data.isPlaying = false;
+                playButton.textContent = '▶ 再生';
+                playButton.classList.remove('playing');
+            } else {
+                // 再生
+                const speed = parseInt(document.getElementById(`speedControl-${imageName}`).value);
+                data.animationId = setInterval(() => {
+                    nextFrame(imageName);
+                }, speed);
+                data.isPlaying = true;
+                playButton.textContent = '⏸ 停止';
+                playButton.classList.add('playing');
+            }
+        }
+
+        function changeAnimationSpeed(imageName) {
+            const data = window.frameData[imageName];
+            if (!data || !data.isPlaying) return;
+            
+            // 現在のアニメーションを停止して新しい速度で再開
+            clearInterval(data.animationId);
+            const speed = parseInt(document.getElementById(`speedControl-${imageName}`).value);
+            data.animationId = setInterval(() => {
+                nextFrame(imageName);
+            }, speed);
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            console.log('📁 新規画像テストシステム初期化完了');
+            console.log('画像ファイルをドラッグ&ドロップまたは選択してテストを開始してください');
+        });
+    </script>
+</body>
+</html>
