@@ -1,5 +1,5 @@
 # Python
-.venv/
+venv_pose311/
 __pycache__/
 *.py[cod]
 *.pyo
