@@ -323,28 +323,11 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
 
     # --- CROUCH_PUNCH 検出（しゃがみ＋片腕伸展） ---
     crouch_punch_cond = False
-    # 左脚がしゃがみ、右腕がパンチ
-    if crouch_left and punch_right:
-        crouch_punch_cond = True
-    # 右脚がしゃがみ、左腕がパンチ
-    if crouch_right and punch_left:
-        crouch_punch_cond = True
-    # 左脚がしゃがみ、左腕がパンチ
-    if crouch_left and punch_left:
-        crouch_punch_cond = True
-    # 右脚がしゃがみ、右腕がパンチ
-    if crouch_right and punch_right:
-        crouch_punch_cond = True
+    crouch_punch_cond = (crouch_left or crouch_right) and (punch_left or punch_right)
 
     # --- CROUCH_KICK 検出（しゃがみ＋片脚前方伸展） ---
-    # 片足ずつ別の条件を満たしてもCROUCH_KICKになるように修正
     crouch_kick_cond = False
-    # 左脚がしゃがみ、右脚が蹴り
-    if crouch_left and kick_right:
-        crouch_kick_cond = True
-    # 右脚がしゃがみ、左脚が蹴り
-    if crouch_right and kick_left:
-        crouch_kick_cond = True
+    crouch_kick_cond = (crouch_left or crouch_right) and (kick_left or kick_right)
 
     # --- CROUCH_GUARD 検出（しゃがみ＋両手ガード） ---
     crouch_guard_cond = crouch_cond and guard_cond
