@@ -73,7 +73,7 @@ const player = new Fighter({
     y: 157
   },
   sprites: {
-    //アイドル、走る、パンチ、キック、立ちガード、しゃがみ、しゃがみパンチ、しゃがみキック、しゃがみガード、死亡
+    //アイドル、走る、パンチ、キック、立ちガード、しゃがみ、しゃがみパンチ、しゃがみキック、しゃがみガード、ダメージを受ける、死亡
     // === 基本アニメーション ===
     idle: {
       imageSrc: './img/samuraiMack/Idle.png',
@@ -104,9 +104,9 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Death.png',
       framesMax: 6
     },
-    
+
     // === ポーズ対応アニメーション（現在は既存アニメーションを使用） ===
-    
+
     // 攻撃系
     punch: {
       imageSrc: './img/samuraiMack/Attack1.png',  // 専用アニメーション追加時に変更
@@ -124,7 +124,7 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Attack2.png',  // 専用アニメーション追加時に変更
       framesMax: 4
     },
-    
+
     // 防御系
     guard: {
       imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
@@ -134,7 +134,7 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 移動系
     forward: {
       imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
@@ -146,7 +146,7 @@ const player = new Fighter({
       framesMax: 8,
       framesX: 4
     },
-    
+
     // 姿勢系
     crouch: {
       imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
@@ -218,9 +218,9 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Death.png',
       framesMax: 7
     },
-    
+
     // === ポーズ対応アニメーション（現在は既存アニメーションを使用） ===
-    
+
     // 攻撃系
     punch: {
       imageSrc: './img/kenji/Attack1.png',       // 専用アニメーション追加時に変更
@@ -238,7 +238,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Attack2.png',       // 専用アニメーション追加時に変更
       framesMax: 4
     },
-    
+
     // 防御系
     guard: {
       imageSrc: './img/kenji/Idle.png',          // 専用アニメーション追加時に変更
@@ -248,7 +248,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Idle.png',          // 専用アニメーション追加時に変更
       framesMax: 4
     },
-    
+
     // 移動系
     forward: {
       imageSrc: './img/kenji/Run.png',           // 専用アニメーション追加時に変更
@@ -258,7 +258,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Run.png',           // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 姿勢系
     crouch: {
       imageSrc: './img/kenji/Idle.png',          // 専用アニメーション追加時に変更
@@ -281,6 +281,63 @@ const enemy = new Fighter({
 
 console.log(player)
 
+// --- WebSocket 接続 ---
+// サーバーのWebSocketエンドポイントに接続します。
+// 'ws://' スキームを使い、ホスト名とポート番号は自動で現在のページのものを使います。
+const socket = new WebSocket('ws://' + window.location.host + '/ws');
+
+// --- DOM要素の取得 ---
+// HTMLからポーズ名を表示するための<span>要素を取得します。
+const playerPoseElement = document.getElementById('player1-pose');
+
+// --- WebSocket イベントリスナー ---
+
+// 接続が確立したときにコンソールにメッセージを表示します。
+socket.onopen = (event) => {
+  console.log("✅ WebSocket connection established.");
+};
+
+// サーバーからメッセージを受信したときに実行されるメインの処理です。
+socket.onmessage = (event) => {
+  // 受信データはJSON形式の文字列なので、JavaScriptオブジェクトに変換（パース）します。
+  const data = JSON.parse(event.data);
+
+  // 'pose'というキーがデータに含まれていれば、その値で画面の表示を更新します。
+  // これにより、映像データ('image')は完全に無視されます。
+  if (data.pose) {
+    poseController.setPlayer1Pose(data.pose);
+    if (playerPoseElement) {
+      playerPoseElement.textContent = data.pose;
+    }
+  }
+
+  // デバッグ用の表示
+  if (data.image) {
+    const videoFeedElement = document.getElementById('video-feed');
+    videoFeedElement.src = 'data:image/jpeg;base64,' + data.image;
+  }
+  // デバッグ用の表示
+
+  // サーバーからエラーメッセージが送られてきた場合はコンソールに表示します。
+  if (data.error) {
+    console.error("Server error:", data.error);
+  }
+};
+
+// 接続が閉じたときの処理です。
+socket.onclose = (event) => {
+  if (event.wasClean) {
+    console.log(`WebSocket connection closed cleanly, code=${event.code} reason=${event.reason}`);
+  } else {
+    // サーバープロセスが落ちた場合など
+    console.error('❌ WebSocket connection died');
+  }
+};
+
+// 通信中にエラーが発生したときの処理です。
+socket.onerror = (error) => {
+  console.error(`WebSocket error: ${error.message}`);
+};
 // プレイヤーの現在状態を追跡
 let player1CurrentState = 'idle';
 let player2CurrentState = 'idle';
@@ -300,14 +357,14 @@ function animate() {
   // 表示
   c.fillStyle = 'rgba(255, 255, 255, 0.15)'
   c.fillRect(0, 0, canvas.width, canvas.height)
-  
+
   // ポーズコントローラーの更新
   poseController.update()
-  
+
   // ポーズからの入力を取得
   const player1Input = poseController.getPlayer1Input()
   const player2Input = poseController.getPlayer2Input()
-  
+
   player.update()
   enemy.update()
 
@@ -317,7 +374,7 @@ function animate() {
   // プレイヤー1の状態リセット
   player.isGuarding = false
   player.isCrouching = false
-  
+
   // プレイヤー2の状態リセット
   enemy.isGuarding = false
   enemy.isCrouching = false  // プレイヤー1のポーズ制御
@@ -461,6 +518,10 @@ function animate() {
 }
 
 animate()
+
+function getPlayer1Input() {
+  //ここに処理を追加する
+}
 
 // キーボード入力は保持（テスト用）
 const keys = {
