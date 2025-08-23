@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-time Pose Viewer</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #282c34;
+        }
+        canvas {
+            border: 2px solid #61dafb;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="pose-canvas" width="960" height="540"></canvas>
+
+    <script>
+        // Canvas要素と描画コンテキストを取得
+        const canvas = document.getElementById('pose-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // WebSocketサーバーに接続
+        const socket = new WebSocket('ws://' + window.location.host + '/ws');
+
+        // 表示用のImageオブジェクトを作成
+        const image = new Image();
+
+        socket.onopen = function(event) {
+            console.log('Successfully connected to the WebSocket server.');
+            ctx.fillStyle = 'white';
+            ctx.font = '30px sans-serif';
+            ctx.fillText('Waiting for camera...', 50, 50);
+        };
+
+        // メッセージを受信したときのイベント
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            // imageデータがある場合のみ処理
+            if (data.image) {
+                // Base64形式の画像データをImageオブジェクトのソースに設定
+                image.src = 'data:image/jpeg;base64,' + data.image;
+                
+                // 画像が読み込まれたらCanvasに描画
+                image.onload = () => {
+                    // 1. Canvasをクリアしてカメラ映像を描画
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+                    // 2. ポーズ名を描画
+                    if (data.pose) {
+                        ctx.fillStyle = '#00FFFF'; // Cyan
+                        ctx.font = 'bold 40px sans-serif';
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 2;
+                        
+                        const text = data.pose;
+                        const x = 20;
+                        const y = 50;
+
+                        // 文字に縁取りをつけて見やすくする
+                        ctx.strokeText(text, x, y);
+                        ctx.fillText(text, x, y);
+                    }
+                };
+            }
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket Error:', error);
+            ctx.fillStyle = 'red';
+            ctx.font = '30px sans-serif';
+            ctx.fillText('Connection Error', 50, 50);
+        };
+
+        socket.onclose = function(event) {
+            console.log('Disconnected from the WebSocket server.');
+             ctx.fillStyle = 'gray';
+            ctx.font = '30px sans-serif';
+            ctx.fillText('Disconnected', 50, 50);
+        };
+    </script>
+</body>
+</html>
