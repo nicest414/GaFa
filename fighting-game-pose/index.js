@@ -339,8 +339,8 @@ socket.onerror = (error) => {
   console.error(`WebSocket error: ${error.message}`);
 };
 // プレイヤーの現在状態を追跡
-let player1CurrentState = 'idle';
-let player2CurrentState = 'idle';
+// let player1CurrentState = 'idle';
+// let player2CurrentState = 'idle';
 
 decreaseTimer()
 
@@ -518,10 +518,6 @@ function animate() {
 }
 
 animate()
-
-function getPlayer1Input() {
-  //ここに処理を追加する
-}
 
 // キーボード入力は保持（テスト用）
 const keys = {
