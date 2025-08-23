@@ -21,6 +21,12 @@ class Sprite {
   }
 
   draw() {
+    // 画像が有効でない場合は描画をスキップ
+    if (!this.image || !this.image.complete || this.image.naturalWidth === 0) {
+      console.warn('Image not loaded or broken:', this.image?.src || 'no image');
+      return;
+    }
+    
     c.save();
     if (this.color === 'blue') {
       // kenji（enemy）はすべてのアクションで左右反転
@@ -159,10 +165,32 @@ class Fighter extends Sprite {
     } else this.velocity.y += gravity
   }
 
-  attack() {
+  animateFrames() {
+    this.framesElapsed++
+
+    if (this.framesElapsed % this.framesHold === 0) {
+      if (this.framesCurrent < this.framesMax - 1) {
+        this.framesCurrent++
+      } else {
+        this.framesCurrent = 0
+        
+        // 攻撃アニメーションが終了した場合、攻撃状態をリセット
+        const attackSprites = ['punch', 'kick', 'crouch_Punch', 'crouch_Kick'];
+        for (const attackSprite of attackSprites) {
+          if (this.sprites[attackSprite] && 
+              this.image === this.sprites[attackSprite].image) {
+            this.isAttacking = false;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  attack(attackType = 'punch') {
     if (!this.isAttacking && !this.dead) {
-      this.switchSprite('attack1')
-      this.isAttacking = true
+      this.isAttacking = true;
+      this.attackType = attackType;
     }
   }
 
@@ -210,12 +238,15 @@ class Fighter extends Sprite {
       return
     }
 
-    // overriding all other animations with the attack animation
-    if (
-      this.image === this.sprites.attack1.image &&
-      this.framesCurrent < this.sprites.attack1.framesMax - 1
-    )
-      return
+    // overriding all other animations with attack animations
+    const attackSprites = ['punch', 'kick', 'crouch_Punch', 'crouch_Kick'];
+    for (const attackSprite of attackSprites) {
+      if (this.sprites[attackSprite] && 
+          this.image === this.sprites[attackSprite].image &&
+          this.framesCurrent < this.sprites[attackSprite].framesMax - 1) {
+        return;
+      }
+    }
 
     // override when fighter gets hit
     if (
@@ -225,71 +256,99 @@ class Fighter extends Sprite {
       return
 
     const setSprite = (newSprite) => {
-        // 同じスプライトの場合は何もしない（アニメーション継続）
-        if (this.image === newSprite.image) {
+        // スプライトが存在しない場合は何もしない
+        if (!newSprite || !newSprite.image) {
+            console.warn(`Sprite not found or invalid:`, newSprite);
             return;
         }
         
-        // 新しいスプライトに切り替え
+        // スプライトを設定（常に実行してアニメーションの一貫性を保つ）
         this.image = newSprite.image;
         this.framesMax = newSprite.framesMax;
         this.framesX = newSprite.framesX || newSprite.framesMax;
-        this.framesCurrent = 0; // 新しいスプライトの場合のみリセット
+        
+        // 異なるスプライトの場合のみフレームをリセット
+        if (this.framesCurrent >= this.framesMax) {
+            this.framesCurrent = 0;
+        }
     }
 
     switch (sprite) {
       case 'idle':
-        setSprite(this.sprites.idle);
+        if (this.sprites.idle) setSprite(this.sprites.idle);
         break
       case 'run':
-        setSprite(this.sprites.run);
+        if (this.sprites.run) setSprite(this.sprites.run);
         break
       case 'jump':
-        setSprite(this.sprites.jump);
+        if (this.sprites.jump) setSprite(this.sprites.jump);
         break
       case 'fall':
-        setSprite(this.sprites.fall);
-        break
-      case 'attack1':
-        setSprite(this.sprites.attack1);
+        if (this.sprites.fall) setSprite(this.sprites.fall);
         break
       case 'takeHit':
-        setSprite(this.sprites.takeHit);
+        if (this.sprites.takeHit) setSprite(this.sprites.takeHit);
         break
       case 'death':
-        setSprite(this.sprites.death);
+        if (this.sprites.death) setSprite(this.sprites.death);
         break
       
-      // Pose-related sprites
+      // Attack sprites - 4種類の攻撃を個別に処理
       case 'punch':
-        setSprite(this.sprites.punch || this.sprites.attack1);
+        if (this.sprites.punch) setSprite(this.sprites.punch);
         break
       case 'kick':
-        setSprite(this.sprites.kick || this.sprites.attack1);
+        if (this.sprites.kick) setSprite(this.sprites.kick);
         break
       case 'crouch_punch':
-        setSprite(this.sprites.crouchPunch || this.sprites.attack1);
+      case 'crouch_Punch':
+        if (this.sprites.crouch_Punch) setSprite(this.sprites.crouch_Punch);
         break
       case 'crouch_kick':
-        setSprite(this.sprites.crouchKick || this.sprites.attack1);
+      case 'crouch_Kick':
+        if (this.sprites.crouch_Kick) setSprite(this.sprites.crouch_Kick);
         break
       case 'guard':
-        setSprite(this.sprites.guard || this.sprites.idle);
+        if (this.sprites.guard) {
+          setSprite(this.sprites.guard);
+        } else if (this.sprites.idle) {
+          setSprite(this.sprites.idle);
+        }
         break
       case 'crouch_guard':
-        setSprite(this.sprites.crouchGuard || this.sprites.idle);
+        if (this.sprites.crouchGuard) {
+          setSprite(this.sprites.crouchGuard);
+        } else if (this.sprites.idle) {
+          setSprite(this.sprites.idle);
+        }
         break
       case 'forward':
-        setSprite(this.sprites.forward || this.sprites.run);
+        if (this.sprites.forward) {
+          setSprite(this.sprites.forward);
+        } else if (this.sprites.run) {
+          setSprite(this.sprites.run);
+        }
         break
       case 'backward':
-        setSprite(this.sprites.backward || this.sprites.run);
+        if (this.sprites.backward) {
+          setSprite(this.sprites.backward);
+        } else if (this.sprites.run) {
+          setSprite(this.sprites.run);
+        }
         break
       case 'crouch':
-        setSprite(this.sprites.crouch || this.sprites.idle);
+        if (this.sprites.crouch) {
+          setSprite(this.sprites.crouch);
+        } else if (this.sprites.idle) {
+          setSprite(this.sprites.idle);
+        }
         break
       case 'stand':
-        setSprite(this.sprites.stand || this.sprites.idle);
+        if (this.sprites.stand) {
+          setSprite(this.sprites.stand);
+        } else if (this.sprites.idle) {
+          setSprite(this.sprites.idle);
+        }
         break
     }
   }

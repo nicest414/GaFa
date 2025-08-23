@@ -26,12 +26,9 @@ class PoseController {
    * @param {string} pose - ポーズ名
    */
   setPlayer1Pose(pose) {
-    if (this.player1Pose !== pose) {
-      this.player1Pose = pose;
-      this.player1PoseFrames = 0;
-      this.updateDebugDisplay();
-    }
-    this.player1PoseFrames++;
+    this.player1Pose = pose;
+    this.player1PoseFrames = 0;  // フレームカウントをリセット
+    this.updateDebugDisplay();
   }
 
   /**
@@ -39,12 +36,9 @@ class PoseController {
    * @param {string} pose - ポーズ名
    */
   setPlayer2Pose(pose) {
-    if (this.player2Pose !== pose) {
-      this.player2Pose = pose;
-      this.player2PoseFrames = 0;
-      this.updateDebugDisplay();
-    }
-    this.player2PoseFrames++;
+    this.player2Pose = pose;
+    this.player2PoseFrames = 0;  // フレームカウントをリセット
+    this.updateDebugDisplay();
   }
 
   /**
@@ -75,9 +69,10 @@ class PoseController {
       right: false,
       jump: false,
       attack: false,
+      kick: false,
       guard: false,
       crouch: false,
-      animationName: 'idle'  // 追加: アニメーション名
+      animationName: 'stand'
     };
 
     // ポーズ優先度に従って処理
@@ -85,19 +80,19 @@ class PoseController {
       case 'CROUCH_PUNCH':
         input.attack = true;
         input.crouch = true;
-        input.animationName = 'crouch_punch';
+        input.animationName = 'crouch_Punch';
         break;
       case 'CROUCH_KICK':
-        input.attack = true;
+        input.kick = true;
         input.crouch = true;
-        input.animationName = 'crouch_kick';
+        input.animationName = 'crouch_Kick';
         break;
       case 'PUNCH':
         input.attack = true;
         input.animationName = 'punch';
         break;
       case 'KICK':
-        input.attack = true;
+        input.kick = true;
         input.animationName = 'kick';
         break;
       case 'CROUCH_GUARD':
@@ -139,9 +134,10 @@ class PoseController {
       right: false,
       jump: false,
       attack: false,
+      kick: false,
       guard: false,
       crouch: false,
-      animationName: 'idle'  // 追加: アニメーション名
+      animationName: 'stand'
     };
 
     // ポーズ優先度に従って処理
@@ -149,19 +145,19 @@ class PoseController {
       case 'CROUCH_PUNCH':
         input.attack = true;
         input.crouch = true;
-        input.animationName = 'crouch_punch';
+        input.animationName = 'crouch_Punch';
         break;
       case 'CROUCH_KICK':
-        input.attack = true;
+        input.kick = true;
         input.crouch = true;
-        input.animationName = 'crouch_kick';
+        input.animationName = 'crouch_Kick';
         break;
       case 'PUNCH':
         input.attack = true;
         input.animationName = 'punch';
         break;
       case 'KICK':
-        input.attack = true;
+        input.kick = true;
         input.animationName = 'kick';
         break;
       case 'CROUCH_GUARD':

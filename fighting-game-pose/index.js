@@ -79,6 +79,18 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Stand.png',
       framesMax: 10
     },
+    run: {
+      imageSrc: './img/samuraiMack/Forward.png',
+      framesMax: 8
+    },
+    jump: {
+      imageSrc: './img/samuraiMack/Stand.png',
+      framesMax: 10
+    },
+    fall: {
+      imageSrc: './img/samuraiMack/Stand.png',
+      framesMax: 10
+    },
     takeHit: {
       imageSrc: './img/samuraiMack/Takehit.png',
       framesMax: 7
@@ -99,11 +111,11 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Kick.png',  // 専用アニメーション追加時に変更
       framesMax: 9
     },
-    crouchPunch: {
+    crouch_Punch: {
       imageSrc: './img/samuraiMack/Crouch_Punch.png',  // 専用アニメーション追加時に変更
       framesMax: 10
     },
-    crouchKick: {
+    crouch_Kick: {
       imageSrc: './img/samuraiMack/Crouch_Kick.png',  // 専用アニメーション追加時に変更
       framesMax: 8
     },
@@ -120,11 +132,11 @@ const player = new Fighter({
     
     // 移動系
     forward: {
-      imageSrc: './img/player1/Forward.png',      // 専用アニメーション追加時に変更
+      imageSrc: './img/samuraiMack/Forward.png',      // samuraiMackフォルダに修正
       framesMax: 8
     },
     backward: {
-      imageSrc: './img/player1/Backward.png',      // 専用アニメーション追加時に変更
+      imageSrc: './img/samuraiMack/Backward.png',      // samuraiMackフォルダに修正
       framesMax: 8
     },
     
@@ -137,14 +149,6 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Stand.png',
       framesMax: 10
     },
-    jump: {
-      imageSrc: './img/samuraiMack/Stand.png', // ジャンプ用GIFがあれば変更
-      framesMax: 10
-    },
-    fall: {
-      imageSrc: './img/samuraiMack/Stand.png', // 落下用GIFがあれば変更
-      framesMax: 10
-    }
   },
   attackBox: {
     offset: {
@@ -180,6 +184,18 @@ const enemy = new Fighter({
   sprites: {
     // === 基本アニメーション ===
     idle: {
+      imageSrc: './img/kenji/Stand.png',
+      framesMax: 10
+    },
+    run: {
+      imageSrc: './img/kenji/Forward.png',
+      framesMax: 8
+    },
+    jump: {
+      imageSrc: './img/kenji/Stand.png',
+      framesMax: 10
+    },
+    fall: {
       imageSrc: './img/kenji/Stand.png',
       framesMax: 10
     },
@@ -240,14 +256,6 @@ const enemy = new Fighter({
     stand: {
       imageSrc: './img/kenji/Stand.png',
       framesMax: 10
-    },
-    jump: {
-      imageSrc: './img/kenji/Stand.png', // ジャンプ用GIFがあれば変更
-      framesMax: 10
-    },
-    fall: {
-      imageSrc: './img/kenji/Stand.png', // 落下用GIFがあれば変更
-      framesMax: 10
     }
   },
   attackBox: {
@@ -263,8 +271,8 @@ const enemy = new Fighter({
 console.log(player)
 
 // プレイヤーの現在状態を追跡
-let player1CurrentState = 'idle';
-let player2CurrentState = 'idle';
+let player1CurrentState = 'stand';
+let player2CurrentState = 'stand';
 
 decreaseTimer()
 
@@ -301,36 +309,34 @@ function animate() {
   // プレイヤー2の状態リセット
   enemy.isGuarding = false
   enemy.isCrouching = false  // プレイヤー1のポーズ制御
-  let newPlayer1State = player1Input.animationName || 'idle';
+  let newPlayer1State = player1Input.animationName || 'stand';
 
   // 攻撃中は他の動作を制限
   if (player.isAttacking) {
-    // どちらの攻撃か判定したい場合はplayer.attackTypeなどを使う
-    newPlayer1State = player.attackType === 'kick' ? 'kick' : 'punch';
+    // 現在のアニメーション名をそのまま使用
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.guard) {
     player.guard()
-    newPlayer1State = 'guard';
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.crouch) {
     player.crouch()
-    newPlayer1State = 'crouch';
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.kick) {
-    player.attackType = 'kick';
-    player.attack();
-    newPlayer1State = 'kick';
+    player.attack('kick');
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.attack) {
-    player.attackType = 'punch';
-    player.attack();
-    newPlayer1State = 'punch';
+    player.attack('punch');
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.left) {
     player.velocity.x = -5
-    newPlayer1State = 'backward';
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.right) {
     player.velocity.x = 5
-    newPlayer1State = 'forward'; // ← spritesに存在するキー
+    newPlayer1State = player1Input.animationName;
   }
 
   // 状態が変わった時のみスプライトを切り替え
-  if (newPlayer1State !== player1CurrentState) {
+  if (newPlayer1State !== player1CurrentState || newPlayer1State === 'stand') {
     player.switchSprite(newPlayer1State);
     player1CurrentState = newPlayer1State;
   }
@@ -351,34 +357,33 @@ function animate() {
       player1CurrentState = 'fall';
     }
   }  // プレイヤー2のポーズ制御  
-  let newPlayer2State = 'idle';
+  let newPlayer2State = player2Input.animationName || 'stand';
 
   if (enemy.isAttacking) {
-    newPlayer2State = enemy.attackType === 'kick' ? 'kick' : 'punch';
+    // 現在のアニメーション名をそのまま使用
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.guard) {
     enemy.guard()
-    newPlayer2State = 'guard';
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.crouch) {
     enemy.crouch()
-    newPlayer2State = 'crouch';
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.kick) {
-    enemy.attackType = 'kick';
-    enemy.attack();
-    newPlayer2State = 'kick';
+    enemy.attack('kick');
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.attack) {
-    enemy.attackType = 'punch';
-    enemy.attack();
-    newPlayer2State = 'punch';
+    enemy.attack('punch');
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.left) {
     enemy.velocity.x = -5
-    newPlayer2State = 'backward';
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.right) {
     enemy.velocity.x = 5
-    newPlayer2State = 'forward';
+    newPlayer2State = player2Input.animationName;
   }
 
   // 状態が変わった時のみスプライトを切り替え
-  if (newPlayer2State !== player2CurrentState) {
+  if (newPlayer2State !== player2CurrentState || newPlayer2State === 'stand') {
     enemy.switchSprite(newPlayer2State);
     player2CurrentState = newPlayer2State;
   }
