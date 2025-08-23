@@ -90,6 +90,8 @@ class Thresholds:
     kick_ankle_x_to_hip_scale: float = 0.7
     # 新基準2: 足首が膝より十分「上」（y が小さい）かどうかのバッファ。0.2〜0.4。大きくすると検出しやすい。
     kick_ankle_above_knee_scale: float = 0.3
+    # Z軸 KICK 条件: 足首が股関節よりどれだけ前に出ているかの最小値
+    kick_ankle_z_diff_min: float = 0.1
 
 
 TH = Thresholds()
@@ -234,14 +236,20 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
         # 誤検出抑止: x方向の前方移動量 or 足首が膝より高い
         l_ankle_far_x = abs(l_an.x - l_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
         l_ankle_above_knee = (l_an.y + TH.kick_ankle_above_knee_scale * scale) <= l_kn.y
-        kick_left = (l_knee_angle >= TH.kick_knee_angle_min) and (l_ankle_far_x or l_ankle_above_knee)
+
+        # ▼▼▼ Z軸の条件を追加 ▼▼▼
+        l_ankle_pushed_forward = (l_hip.z - l_an.z) >= TH.kick_ankle_z_diff_min
+        kick_left = (l_knee_angle >= TH.kick_knee_angle_min) and (l_ankle_far_x or l_ankle_above_knee or l_ankle_pushed_forward)
 
     if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE):
         r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
         r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
         r_ankle_far_x = abs(r_an.x - r_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
         r_ankle_above_knee = (r_an.y + TH.kick_ankle_above_knee_scale * scale) <= r_kn.y
-        kick_right = (r_knee_angle >= TH.kick_knee_angle_min) and (r_ankle_far_x or r_ankle_above_knee)
+
+        # ▼▼▼ Z軸の条件を追加 ▼▼▼
+        r_ankle_pushed_forward = (r_hip.z - r_an.z) >= TH.kick_ankle_z_diff_min
+        kick_right = (r_knee_angle >= TH.kick_knee_angle_min) and (r_ankle_far_x or r_ankle_above_knee or r_ankle_pushed_forward)
 
     if kick_left or kick_right:
         return "KICK"
