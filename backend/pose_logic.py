@@ -73,26 +73,37 @@ class Thresholds:
 
     # PUNCH 条件: 「肘が伸びている」かつ「手首が肩から十分離れている」かつ「肩高さと大きくズレない」。
     # punch_elbow_angle_min: 150〜175。高いほど「しっかり伸ばした」時のみ反応。
-    punch_elbow_angle_min: float = 130.0
+    punch_elbow_angle_min: float = 145.0
     # punch_wrist_to_shoulder_scale: 手首-肩の距離比。1.0〜1.3。大きくすると厳しい。
     punch_wrist_to_shoulder_scale: float = 1.0
     # punch_wrist_y_align_scale: 肩高さからの許容ずれ（y方向）。0.2〜0.5。小さいほど厳しい。
-    punch_wrist_y_align_scale: float = 0.5
+    punch_wrist_y_align_scale: float = 0.9
     # Z軸 PUNCH 条件: 手首が肩よりどれだけ前に出ているかの最小値
-    punch_wrist_z_diff_min: float = 0.1
+    punch_wrist_z_diff_min: float = 0.2
 
     # KICK 条件（常時検出抑止のため厳格化）。
     # kick_knee_angle_min: 膝の伸び。160〜175。高いほど「しっかり伸ばした」時のみ反応。
-    kick_knee_angle_min: float = 130.0
+    kick_knee_angle_min: float = 155.0
     # 旧仕様の直線距離しきい値（互換のため残置）。通常は無効。
     kick_ankle_to_hip_scale: float = 1.1
     # 新基準1: 股関節から足首が x 方向に前へ出ている比率。0.4〜0.9。大きくすると厳しい。
-    kick_ankle_x_to_hip_scale: float = 0.7
+    kick_ankle_x_to_hip_scale: float = 0.9
     # 新基準2: 足首が膝より十分「上」（y が小さい）かどうかのバッファ。0.2〜0.4。大きくすると検出しやすい。
-    kick_ankle_above_knee_scale: float = 0.3
+    kick_ankle_above_knee_scale: float = 0.2
     # Z軸 KICK 条件: 足首が股関節よりどれだけ前に出ているかの最小値
-    kick_ankle_z_diff_min: float = 0.1
+    kick_ankle_z_diff_min: float = 0.2
 
+    # Z軸 FORWARD/BACKWARD 条件: 肩が腰よりどれだけ前後にいるか
+    forward_lean_z_diff_min: float = 0.1
+    backward_lean_z_diff_min: float = 0.1
+
+    # ▼▼▼ ここに新しいCROUCHのルールを追加 ▼▼▼
+    # CROUCH 条件: 膝の曲がり具合
+    # 90に近いほど深いしゃがみ。大きくすると浅いしゃがみでも反応。
+    crouch_knee_angle_max: float = 140.0
+    # ▼▼▼ 新しいルールを追加 ▼▼▼
+    # 腰と足首の最大Y距離（肩幅比）。大きいほど浅いしゃがみで反応
+    crouch_hip_ankle_dist_max: float = 1.2
 
 TH = Thresholds()
 
@@ -251,73 +262,56 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
 
     kick_cond = kick_left or kick_right
 
-    # --- FORWARD 検出（前傾姿勢） ---
-    # 目的: 上半身が前に傾く（肩-腰の角度が前方15度以上）
-    forward_left = False
-    forward_right = False
-    # 左側
-    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP):
+     # --- FORWARD 検出（前傾姿勢） ---
+    forward_cond = False
+    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP, PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
         l_sh, l_hip = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_HIP]
-        # 肩-腰ベクトルのx方向角度
-        dx = l_sh.x - l_hip.x
-        dy = l_sh.y - l_hip.y
-        angle_rad = math.atan2(dx, dy)
-        angle_deg = math.degrees(angle_rad)
-        # 前方（x方向）に15度以上傾いている
-        forward_left = angle_deg >= 15.0
-
-    # 右側
-    if has(PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
         r_sh, r_hip = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_HIP]
-        dx = r_sh.x - r_hip.x
-        dy = r_sh.y - r_hip.y
-        angle_rad = math.atan2(dx, dy)
-        angle_deg = math.degrees(angle_rad)
-        forward_right = angle_deg >= 15.0
 
-    forward_cond = forward_left or forward_right
+        # 両肩と両腰の平均座標を計算
+        avg_sh_z = (l_sh.z + r_sh.z) / 2
+        avg_hip_z = (l_hip.z + r_hip.z) / 2
+
+        # 平均座標を使って、上半身全体が前に傾いているか判定
+        forward_cond = (avg_hip_z - avg_sh_z) >= TH.forward_lean_z_diff_min
 
     # --- BACKWARD 検出（後傾姿勢） ---
-    # 目的: 上半身が後ろに傾く（肩-腰の角度が後方10度以上）
-    backward_left = False
-    backward_right = False
-    # 左側
-    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP):
+    backward_cond = False
+    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP, PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
         l_sh, l_hip = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_HIP]
-        dx = l_sh.x - l_hip.x
-        dy = l_sh.y - l_hip.y
-        angle_rad = math.atan2(dx, dy)
-        angle_deg = math.degrees(angle_rad)
-        # 後方（x方向）に-10度以下傾いている
-        backward_left = angle_deg <= -10.0
-
-    # 右側
-    if has(PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
         r_sh, r_hip = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_HIP]
-        dx = r_sh.x - r_hip.x
-        dy = r_sh.y - r_hip.y
-        angle_rad = math.atan2(dx, dy)
-        angle_deg = math.degrees(angle_rad)
-        backward_right = angle_deg <= -10.0
 
-    backward_cond = backward_left or backward_right
+        # 両肩と両腰の平均座標を計算
+        avg_sh_z = (l_sh.z + r_sh.z) / 2
+        avg_hip_z = (l_hip.z + r_hip.z) / 2
 
-    # --- CROUCH 検出（左右どちらか） ---
-    # 目的: 膝が大きく曲がり、腰が下がる（膝角度90度以下）
+        # 平均座標を使って、上半身全体が後ろに傾いているか判定
+        backward_cond = (avg_sh_z - avg_hip_z) >= TH.backward_lean_z_diff_min
+
+      # --- CROUCH 検出（左右どちらか） ---
     crouch_left = False
     crouch_right = False
     if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE):
         l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
         l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
-        # 腰が膝より下（y値が大きい＝下がっている）
-        l_hip_down = l_hip.y > l_kn.y
-        crouch_left = (l_knee_angle <= 90.0) and l_hip_down
+
+        # ▼▼▼ 新しい判定ロジック ▼▼▼
+        # 腰と足首のY座標（垂直方向）の距離を計算
+        l_hip_ankle_dist_y = abs(l_hip.y - l_an.y)
+        # 距離がしきい値以下かチェック
+        l_hip_low_enough = l_hip_ankle_dist_y <= (TH.crouch_hip_ankle_dist_max * scale)
+
+        crouch_left = (l_knee_angle <= TH.crouch_knee_angle_max) and l_hip_low_enough
 
     if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE):
         r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
         r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
-        r_hip_down = r_hip.y > r_kn.y
-        crouch_right = (r_knee_angle <= 90.0) and r_hip_down
+
+        # ▼▼▼ 新しい判定ロジック ▼▼▼
+        r_hip_ankle_dist_y = abs(r_hip.y - r_an.y)
+        r_hip_low_enough = r_hip_ankle_dist_y <= (TH.crouch_hip_ankle_dist_max * scale)
+
+        crouch_right = (r_knee_angle <= TH.crouch_knee_angle_max) and r_hip_low_enough
 
     crouch_cond = crouch_left or crouch_right
 
