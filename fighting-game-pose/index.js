@@ -54,8 +54,8 @@ const wood = new Sprite({
 
 const player = new Fighter({
   position: {
-    x: 0,
-    y: 0
+    x: 400, // ← enemyと同じx座標
+    y: 100  // ← enemyと同じy座標
   },
   velocity: {
     x: 0,
@@ -65,96 +65,85 @@ const player = new Fighter({
     x: 0,
     y: 0
   },
-  imageSrc: './img/samuraiMack/Idle.png',
-  framesMax: 8,
+  imageSrc: './img/samuraiMack/Stand.png',
+  framesMax: 10,
   scale: 1,
   offset: {
-    x: 215,
-    y: 157
+    x: 256,
+    y: 65
   },
   sprites: {
-    //アイドル、走る、パンチ、キック、立ちガード、しゃがみ、しゃがみパンチ、しゃがみキック、しゃがみガード、ダメージを受ける、死亡
+    //アイドル、走る、パンチ、キック、立ちガード、しゃがみ、しゃがみパンチ、しゃがみキック、しゃがみガード、死亡
     // === 基本アニメーション ===
     idle: {
-      imageSrc: './img/samuraiMack/Idle.png',
-      framesMax: 8
-    },
-    run: {
-      imageSrc: './img/player1/run.bmp',
-      framesMax: 8,
-      framesX: 4
-    },
-    jump: {
-      imageSrc: './img/samuraiMack/Jump.png',
-      framesMax: 2
-    },
-    fall: {
-      imageSrc: './img/samuraiMack/Fall.png',
-      framesMax: 2
-    },
-    attack1: {
-      imageSrc: './img/samuraiMack/Attack1.png',
-      framesMax: 6
+      imageSrc: './img/samuraiMack/Stand.png',
+      framesMax: 10
     },
     takeHit: {
-      imageSrc: './img/samuraiMack/Take Hit - white silhouette.png',
-      framesMax: 4
+      imageSrc: './img/samuraiMack/Takehit.png',
+      framesMax: 7
     },
     death: {
       imageSrc: './img/samuraiMack/Death.png',
-      framesMax: 6
+      framesMax: 13
     },
-
+    
     // === ポーズ対応アニメーション（現在は既存アニメーションを使用） ===
-
+    
     // 攻撃系
     punch: {
-      imageSrc: './img/samuraiMack/Attack1.png',  // 専用アニメーション追加時に変更
-      framesMax: 6
+      imageSrc: './img/samuraiMack/Punch.png',  // 専用アニメーション追加時に変更
+      framesMax: 11
     },
     kick: {
-      imageSrc: './img/samuraiMack/Attack2.png',  // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/samuraiMack/Kick.png',  // 専用アニメーション追加時に変更
+      framesMax: 9
     },
     crouchPunch: {
-      imageSrc: './img/samuraiMack/Attack1.png',  // 専用アニメーション追加時に変更
-      framesMax: 6
+      imageSrc: './img/samuraiMack/Crouch_Punch.png',  // 専用アニメーション追加時に変更
+      framesMax: 10
     },
     crouchKick: {
-      imageSrc: './img/samuraiMack/Attack2.png',  // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/samuraiMack/Crouch_Kick.png',  // 専用アニメーション追加時に変更
+      framesMax: 8
     },
-
+    
     // 防御系
     guard: {
-      imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
-      framesMax: 8
+      imageSrc: './img/samuraiMack/Guard.png',     // 専用アニメーション追加時に変更
+      framesMax: 6
     },
     crouchGuard: {
-      imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
+      imageSrc: './img/samuraiMack/Crouch_Guard.png',     // 専用アニメーション追加時に変更
       framesMax: 8
     },
-
+    
     // 移動系
     forward: {
-      imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
-      framesMax: 8,
-      framesX: 4
+      imageSrc: './img/player1/Forward.png',      // 専用アニメーション追加時に変更
+      framesMax: 8
     },
     backward: {
-      imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
-      framesMax: 8,
-      framesX: 4
+      imageSrc: './img/player1/Backward.png',      // 専用アニメーション追加時に変更
+      framesMax: 8
     },
-
+    
     // 姿勢系
     crouch: {
-      imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
-      framesMax: 8
+      imageSrc: './img/samuraiMack/Crouch.png',     // 専用アニメーション追加時に変更
+      framesMax: 10
     },
     stand: {
-      imageSrc: './img/samuraiMack/Idle.png',
-      framesMax: 8
+      imageSrc: './img/samuraiMack/Stand.png',
+      framesMax: 10
+    },
+    jump: {
+      imageSrc: './img/samuraiMack/Stand.png', // ジャンプ用GIFがあれば変更
+      framesMax: 10
+    },
+    fall: {
+      imageSrc: './img/samuraiMack/Stand.png', // 落下用GIFがあれば変更
+      framesMax: 10
     }
   },
   attackBox: {
@@ -181,92 +170,84 @@ const enemy = new Fighter({
     x: -50,
     y: 0
   },
-  imageSrc: './img/kenji/Idle.png',
-  framesMax: 4,
-  scale: 2.5,
+  imageSrc: './img/kenji/Stand.png',
+  framesMax: 10,
+  scale: 1,
   offset: {
-    x: 215,
-    y: 167
+    x: -256,
+    y: 65
   },
   sprites: {
     // === 基本アニメーション ===
     idle: {
-      imageSrc: './img/kenji/Idle.png',
-      framesMax: 4
-    },
-    run: {
-      imageSrc: './img/kenji/Run.png',
-      framesMax: 8
-    },
-    jump: {
-      imageSrc: './img/kenji/Jump.png',
-      framesMax: 2
-    },
-    fall: {
-      imageSrc: './img/kenji/Fall.png',
-      framesMax: 2
-    },
-    attack1: {
-      imageSrc: './img/kenji/Attack1.png',
-      framesMax: 4
+      imageSrc: './img/kenji/Stand.png',
+      framesMax: 10
     },
     takeHit: {
-      imageSrc: './img/kenji/Take hit.png',
-      framesMax: 3
+      imageSrc: './img/kenji/Takehit.png',
+      framesMax: 7
     },
     death: {
       imageSrc: './img/kenji/Death.png',
-      framesMax: 7
+      framesMax: 13
     },
-
+    
     // === ポーズ対応アニメーション（現在は既存アニメーションを使用） ===
-
+    
     // 攻撃系
     punch: {
-      imageSrc: './img/kenji/Attack1.png',       // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Punch.png',       // 専用アニメーション追加時に変更
+      framesMax: 11
     },
     kick: {
-      imageSrc: './img/kenji/Attack2.png',       // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Kick.png',       // 専用アニメーション追加時に変更
+      framesMax: 9
     },
     crouchPunch: {
-      imageSrc: './img/kenji/Attack1.png',       // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Crouch_Punch.png',       // 専用アニメーション追加時に変更
+      framesMax: 10
     },
     crouchKick: {
-      imageSrc: './img/kenji/Attack2.png',       // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Crouch_Kick.png',       // 専用アニメーション追加時に変更
+      framesMax: 8
     },
-
+    
     // 防御系
     guard: {
-      imageSrc: './img/kenji/Idle.png',          // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Guard.png',          // 専用アニメーション追加時に変更
+      framesMax: 6
     },
     crouchGuard: {
-      imageSrc: './img/kenji/Idle.png',          // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Crouch_Guard.png',          // 専用アニメーション追加時に変更
+      framesMax: 8
     },
-
+    
     // 移動系
     forward: {
-      imageSrc: './img/kenji/Run.png',           // 専用アニメーション追加時に変更
+      imageSrc: './img/kenji/Forward.png',           // 専用アニメーション追加時に変更
       framesMax: 8
     },
     backward: {
-      imageSrc: './img/kenji/Run.png',           // 専用アニメーション追加時に変更
+      imageSrc: './img/kenji/Backward.png',           // 専用アニメーション追加時に変更
       framesMax: 8
     },
-
+    
     // 姿勢系
     crouch: {
-      imageSrc: './img/kenji/Idle.png',          // 専用アニメーション追加時に変更
-      framesMax: 4
+      imageSrc: './img/kenji/Crouch.png',          // 専用アニメーション追加時に変更
+      framesMax: 10
     },
     stand: {
-      imageSrc: './img/kenji/Idle.png',
-      framesMax: 4
+      imageSrc: './img/kenji/Stand.png',
+      framesMax: 10
+    },
+    jump: {
+      imageSrc: './img/kenji/Stand.png', // ジャンプ用GIFがあれば変更
+      framesMax: 10
+    },
+    fall: {
+      imageSrc: './img/kenji/Stand.png', // 落下用GIFがあれば変更
+      framesMax: 10
     }
   },
   attackBox: {
@@ -281,73 +262,15 @@ const enemy = new Fighter({
 
 console.log(player)
 
-// --- WebSocket 接続 ---
-// サーバーのWebSocketエンドポイントに接続します。
-// 'ws://' スキームを使い、ホスト名とポート番号は自動で現在のページのものを使います。
-const socket = new WebSocket('ws://' + window.location.host + '/ws');
-
-// --- DOM要素の取得 ---
-// HTMLからポーズ名を表示するための<span>要素を取得します。
-const playerPoseElement = document.getElementById('player1-pose');
-
-// --- WebSocket イベントリスナー ---
-
-// 接続が確立したときにコンソールにメッセージを表示します。
-socket.onopen = (event) => {
-  console.log("✅ WebSocket connection established.");
-};
-
-// サーバーからメッセージを受信したときに実行されるメインの処理です。
-socket.onmessage = (event) => {
-  // 受信データはJSON形式の文字列なので、JavaScriptオブジェクトに変換（パース）します。
-  const data = JSON.parse(event.data);
-
-  // 'pose'というキーがデータに含まれていれば、その値で画面の表示を更新します。
-  // これにより、映像データ('image')は完全に無視されます。
-  if (data.pose) {
-    poseController.setPlayer1Pose(data.pose);
-    if (playerPoseElement) {
-      playerPoseElement.textContent = data.pose;
-    }
-  }
-
-  // デバッグ用の表示
-  if (data.image) {
-    const videoFeedElement = document.getElementById('video-feed');
-    videoFeedElement.src = 'data:image/jpeg;base64,' + data.image;
-  }
-  // デバッグ用の表示
-
-  // サーバーからエラーメッセージが送られてきた場合はコンソールに表示します。
-  if (data.error) {
-    console.error("Server error:", data.error);
-  }
-};
-
-// 接続が閉じたときの処理です。
-socket.onclose = (event) => {
-  if (event.wasClean) {
-    console.log(`WebSocket connection closed cleanly, code=${event.code} reason=${event.reason}`);
-  } else {
-    // サーバープロセスが落ちた場合など
-    console.error('❌ WebSocket connection died');
-  }
-};
-
-// 通信中にエラーが発生したときの処理です。
-socket.onerror = (error) => {
-  console.error(`WebSocket error: ${error.message}`);
-};
 // プレイヤーの現在状態を追跡
-// let player1CurrentState = 'idle';
-// let player2CurrentState = 'idle';
+let player1CurrentState = 'idle';
+let player2CurrentState = 'idle';
 
 decreaseTimer()
 
 function animate() {
   window.requestAnimationFrame(animate)
-  c.fillStyle = 'black'
-  c.fillRect(0, 0, canvas.width, canvas.height)
+  c.clearRect(0, 0, canvas.width, canvas.height) // ← これを追加
   // 表示
   background.update()
   mountain.update()
@@ -357,14 +280,14 @@ function animate() {
   // 表示
   c.fillStyle = 'rgba(255, 255, 255, 0.15)'
   c.fillRect(0, 0, canvas.width, canvas.height)
-
+  
   // ポーズコントローラーの更新
   poseController.update()
-
+  
   // ポーズからの入力を取得
   const player1Input = poseController.getPlayer1Input()
   const player2Input = poseController.getPlayer2Input()
-
+  
   player.update()
   enemy.update()
 
@@ -374,30 +297,36 @@ function animate() {
   // プレイヤー1の状態リセット
   player.isGuarding = false
   player.isCrouching = false
-
+  
   // プレイヤー2の状態リセット
   enemy.isGuarding = false
   enemy.isCrouching = false  // プレイヤー1のポーズ制御
-  let newPlayer1State = 'idle';
-  
+  let newPlayer1State = player1Input.animationName || 'idle';
+
   // 攻撃中は他の動作を制限
   if (player.isAttacking) {
-    newPlayer1State = 'attack1';
+    // どちらの攻撃か判定したい場合はplayer.attackTypeなどを使う
+    newPlayer1State = player.attackType === 'kick' ? 'kick' : 'punch';
   } else if (player1Input.guard) {
     player.guard()
     newPlayer1State = 'guard';
   } else if (player1Input.crouch) {
     player.crouch()
     newPlayer1State = 'crouch';
+  } else if (player1Input.kick) {
+    player.attackType = 'kick';
+    player.attack();
+    newPlayer1State = 'kick';
   } else if (player1Input.attack) {
-    player.attack()
-    newPlayer1State = 'attack1';
+    player.attackType = 'punch';
+    player.attack();
+    newPlayer1State = 'punch';
   } else if (player1Input.left) {
     player.velocity.x = -5
-    newPlayer1State = 'run';
+    newPlayer1State = 'backward';
   } else if (player1Input.right) {
     player.velocity.x = 5
-    newPlayer1State = 'run';
+    newPlayer1State = 'forward'; // ← spritesに存在するキー
   }
 
   // 状態が変わった時のみスプライトを切り替え
@@ -423,25 +352,29 @@ function animate() {
     }
   }  // プレイヤー2のポーズ制御  
   let newPlayer2State = 'idle';
-  
-  // 攻撃中は他の動作を制限
+
   if (enemy.isAttacking) {
-    newPlayer2State = 'attack1';
+    newPlayer2State = enemy.attackType === 'kick' ? 'kick' : 'punch';
   } else if (player2Input.guard) {
     enemy.guard()
     newPlayer2State = 'guard';
   } else if (player2Input.crouch) {
     enemy.crouch()
     newPlayer2State = 'crouch';
+  } else if (player2Input.kick) {
+    enemy.attackType = 'kick';
+    enemy.attack();
+    newPlayer2State = 'kick';
   } else if (player2Input.attack) {
-    enemy.attack()
-    newPlayer2State = 'attack1';
+    enemy.attackType = 'punch';
+    enemy.attack();
+    newPlayer2State = 'punch';
   } else if (player2Input.left) {
     enemy.velocity.x = -5
-    newPlayer2State = 'run';
+    newPlayer2State = 'backward';
   } else if (player2Input.right) {
     enemy.velocity.x = 5
-    newPlayer2State = 'run';
+    newPlayer2State = 'forward';
   }
 
   // 状態が変わった時のみスプライトを切り替え
@@ -520,83 +453,95 @@ function animate() {
 animate()
 
 // キーボード入力は保持（テスト用）
-const keys = {
-  a: { pressed: false },
-  d: { pressed: false },
-  ArrowRight: { pressed: false },
-  ArrowLeft: { pressed: false }
-}
+// const keys = {
+//   a: { pressed: false },
+//   d: { pressed: false },
+//   ArrowRight: { pressed: false },
+//   ArrowLeft: { pressed: false }
+// }
 
-window.addEventListener('keydown', (event) => {
-  // 通常のキーボード制御（デバッグ用）
-  if (!player.dead) {
-    switch (event.key) {
-      case 'd':
-        keys.d.pressed = true
-        player.lastKey = 'd'
-        break
-      case 'a':
-        keys.a.pressed = true
-        player.lastKey = 'a'
-        break
-      case 'w':
-        player.velocity.y = -20
-        break
-      case ' ':
-        player.attack()
-        break
-      case 's':
-        player.crouch()
-        break
-      case 'x':
-        player.guard()
-        break
-    }
-  }
+// window.addEventListener('keydown', (event) => {
+//   // 通常のキーボード制御（デバッグ用）
+//   if (!player.dead) {
+//     switch (event.key) {
+//       case 'd':
+//         keys.d.pressed = true
+//         player.lastKey = 'd'
+//         break
+//       case 'a':
+//         keys.a.pressed = true
+//         player.lastKey = 'a'
+//         break
+//       case 'w':
+//         player.velocity.y = -20
+//         break
+//       case ' ':
+//         player.attack()
+//         break
+//       case 's':
+//         player.crouch()
+//         break
+//       case 'x':
+//         player.guard()
+//         break
+//     }
+//   }
 
-  if (!enemy.dead) {
-    switch (event.key) {
-      case 'ArrowRight':
-        keys.ArrowRight.pressed = true
-        enemy.lastKey = 'ArrowRight'
-        break
-      case 'ArrowLeft':
-        keys.ArrowLeft.pressed = true
-        enemy.lastKey = 'ArrowLeft'
-        break
-      case 'ArrowUp':
-        enemy.velocity.y = -20
-        break
-      case 'ArrowDown':
-        enemy.attack()
-        break
-    }
-  }
-})
+//   if (!enemy.dead) {
+//     switch (event.key) {
+//       case 'ArrowRight':
+//         keys.ArrowRight.pressed = true
+//         enemy.lastKey = 'ArrowRight'
+//         break
+//       case 'ArrowLeft':
+//         keys.ArrowLeft.pressed = true
+//         enemy.lastKey = 'ArrowLeft'
+//         break
+//       case 'ArrowUp':
+//         enemy.velocity.y = -20
+//         break
+//       case 'ArrowDown':
+//         enemy.attack()
+//         break
+//       case 'z':
+//         enemy.crouch()
+//         break
+//       case 'c':
+//         enemy.guard()
+//         break
+//     }
+//   }
+// })
 
-window.addEventListener('keyup', (event) => {
-  switch (event.key) {
-    case 'd':
-      keys.d.pressed = false
-      break
-    case 'a':
-      keys.a.pressed = false
-      break
-    case 's':
-      player.stopCrouch()
-      break
-    case 'x':
-      player.stopGuard()
-      break
-  }
+// window.addEventListener('keyup', (event) => {
+//   switch (event.key) {
+//     case 'd':
+//       keys.d.pressed = false
+//       break
+//     case 'a':
+//       keys.a.pressed = false
+//       break
+//     case 's':
+//       player.stopCrouch()
+//       break
+//     case 'x':
+//       player.stopGuard()
+//       break
+//   }
 
-  // enemy keys
-  switch (event.key) {
-    case 'ArrowRight':
-      keys.ArrowRight.pressed = false
-      break
-    case 'ArrowLeft':
-      keys.ArrowLeft.pressed = false
-      break
-  }
-})
+//   // enemy keys
+//   switch (event.key) {
+//     case 'ArrowRight':
+//       keys.ArrowRight.pressed = false
+//       break
+//     case 'ArrowLeft':
+//       keys.ArrowLeft.pressed = false
+//       break
+//     case 'z':
+//       enemy.stopCrouch()
+//       break
+//     case 'c':
+//       enemy.stopGuard()
+//       break
+//   }
+// })

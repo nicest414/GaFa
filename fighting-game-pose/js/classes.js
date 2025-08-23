@@ -21,45 +21,39 @@ class Sprite {
   }
 
   draw() {
-    // framesMaxが1の場合は単一画像として扱う（背景など）
-    if (this.framesMax === 1) {
+    c.save();
+    if (this.color === 'blue') {
+      // kenji（enemy）はすべてのアクションで左右反転
+      const frameWidth = this.image.width / (this.framesMax || 1);
+      c.translate(this.position.x - this.offset.x + frameWidth * this.scale, this.position.y - this.offset.y);
+      c.scale(-1, 1);
       c.drawImage(
         this.image,
-        this.position.x - this.offset.x,
-        this.position.y - this.offset.y,
-        this.image.width * this.scale,
+        this.framesCurrent * frameWidth,
+        0,
+        frameWidth,
+        this.image.height,
+        0,
+        0,
+        frameWidth * this.scale,
         this.image.height * this.scale
       );
-      return;
+    } else {
+      // 通常描画（samuraiなど）
+      const frameWidth = this.image.width / (this.framesMax || 1);
+      c.drawImage(
+        this.image,
+        this.framesCurrent * frameWidth,
+        0,
+        frameWidth,
+        this.image.height,
+        this.position.x - this.offset.x,
+        this.position.y - this.offset.y,
+        frameWidth * this.scale,
+        this.image.height * this.scale
+      );
     }
-
-    // スプライトシートの場合の処理
-    // フレームサイズを256x256に固定
-    const frameWidth = 256;
-    const frameHeight = 256;
-
-    // スプライトシートの横のフレーム数を取得（未定義ならframesMaxを代入）
-    const framesInRow = this.framesX || this.framesMax;
-
-    // 現在のフレームの行と列を計算
-    const currentColumn = this.framesCurrent % framesInRow;
-    const currentRow = Math.floor(this.framesCurrent / framesInRow);
-
-    // 切り出す画像のソース位置を決定
-    const sourceX = currentColumn * frameWidth;
-    const sourceY = currentRow * frameHeight;
-
-    c.drawImage(
-      this.image,
-      sourceX,
-      sourceY,
-      frameWidth, // 固定値
-      frameHeight, // 固定値
-      this.position.x - this.offset.x,
-      this.position.y - this.offset.y,
-      frameWidth * this.scale, // スケールを適用
-      frameHeight * this.scale // スケールを適用
-    );
+    c.restore();
   }
 
   animateFrames() {
