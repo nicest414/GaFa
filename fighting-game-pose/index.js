@@ -11,20 +11,46 @@ const gravity = 0.7
 const background = new Sprite({
   position: {
     x: 0,
-    y: 0
+    y: -150
   },
-  imageSrc: './img/background.png'
+  imageSrc: './img/backgroundA/background.png'
 })
 
-const shop = new Sprite({
+const mountain = new Sprite({
+  position: {
+    x: 0,
+    y: 150
+  },
+  imageSrc: './img/backgroundA/gra_view_mountA.png',
+  scale: 2,
+})
+
+const grass = new Sprite({
+  position: {
+    x: 0,
+    y: 400
+  },
+  imageSrc: './img/backgroundA/gra_ground_grassA.png',
+  scale: 2,
+})
+
+const wood = new Sprite({
   position: {
     x: 600,
-    y: 128
+    y: 120
   },
-  imageSrc: './img/shop.png',
-  scale: 2.75,
-  framesMax: 6
+  imageSrc: './img/backgroundA/gra_obj_woodA.png'
 })
+
+// const shop = new Sprite({
+//   position: {
+//     x: 600,
+//     y: 128
+//   },
+//   imageSrc: './img/shop.png',
+//   scale: 2.75,
+//   framesMax: 6
+// })
 
 const player = new Fighter({
   position: {
@@ -47,13 +73,14 @@ const player = new Fighter({
     y: 157
   },
   sprites: {
+    //アイドル、走る、パンチ、キック、立ちガード、しゃがみ、しゃがみパンチ、しゃがみキック、しゃがみガード、死亡
     // === 基本アニメーション ===
     idle: {
       imageSrc: './img/samuraiMack/Idle.png',
       framesMax: 8
     },
     run: {
-      imageSrc: './img/samuraiMack/Run.png',
+      imageSrc: './img/player1/run.bmp',
       framesMax: 8
     },
     jump: {
@@ -109,11 +136,11 @@ const player = new Fighter({
     
     // 移動系
     forward: {
-      imageSrc: './img/samuraiMack/Run.png',      // 専用アニメーション追加時に変更
+      imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
       framesMax: 8
     },
     backward: {
-      imageSrc: './img/samuraiMack/Run.png',      // 専用アニメーション追加時に変更
+      imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
       framesMax: 8
     },
     
@@ -257,8 +284,13 @@ function animate() {
   window.requestAnimationFrame(animate)
   c.fillStyle = 'black'
   c.fillRect(0, 0, canvas.width, canvas.height)
+  // 表示
   background.update()
-  shop.update()
+  mountain.update()
+  grass.update()
+  wood.update()
+  // shop.update()
+  // 表示
   c.fillStyle = 'rgba(255, 255, 255, 0.15)'
   c.fillRect(0, 0, canvas.width, canvas.height)
   
