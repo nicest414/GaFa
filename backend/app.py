@@ -30,8 +30,8 @@ def test_websocket(ws):
     
     try:
         ws.send(json.dumps({"pose": "IDLE", "status": "test_connected"}))
-        
-        poses = ["IDLE", "PUNCH", "KICK", "GUARD"]
+
+        poses = ["IDLE", "PUNCH", "KICK", "GUARD","CROUCH_PUNCH","CROUCH_KICK","CROUCH_GUARD","FORWARD","BACKWARD","CROUCH","STAND"]
         for i in range(20):  # 20回送信
             pose = poses[i % len(poses)]
             payload = {
