@@ -17,7 +17,7 @@ SMOOTHING_STREAK = 3
 
 
 def main():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     if not cap.isOpened():
         print("Error: Camera not found.")
         return
