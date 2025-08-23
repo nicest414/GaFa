@@ -17,7 +17,7 @@ SMOOTHING_STREAK = 3
 
 
 def main():
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # CAP_DSHOWはWindowsでのカメラ遅延回避用
     if not cap.isOpened():
         print("Error: Camera not found.")
         return
