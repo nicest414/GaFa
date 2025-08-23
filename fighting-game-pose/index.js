@@ -67,7 +67,7 @@ const player = new Fighter({
   },
   imageSrc: './img/samuraiMack/Idle.png',
   framesMax: 8,
-  scale: 2.5,
+  scale: 1,
   offset: {
     x: 215,
     y: 157
@@ -81,7 +81,8 @@ const player = new Fighter({
     },
     run: {
       imageSrc: './img/player1/run.bmp',
-      framesMax: 8
+      framesMax: 8,
+      framesX: 4
     },
     jump: {
       imageSrc: './img/samuraiMack/Jump.png',
@@ -137,11 +138,13 @@ const player = new Fighter({
     // 移動系
     forward: {
       imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
-      framesMax: 8
+      framesMax: 8,
+      framesX: 4
     },
     backward: {
       imageSrc: './img/player1/run.bmp',      // 専用アニメーション追加時に変更
-      framesMax: 8
+      framesMax: 8,
+      framesX: 4
     },
     
     // 姿勢系
@@ -278,6 +281,10 @@ const enemy = new Fighter({
 
 console.log(player)
 
+// プレイヤーの現在状態を追跡
+let player1CurrentState = 'idle';
+let player2CurrentState = 'idle';
+
 decreaseTimer()
 
 function animate() {
@@ -313,68 +320,94 @@ function animate() {
   
   // プレイヤー2の状態リセット
   enemy.isGuarding = false
-  enemy.isCrouching = false
-
-  // プレイヤー1のポーズ制御
-  if (player1Input.guard) {
+  enemy.isCrouching = false  // プレイヤー1のポーズ制御
+  let newPlayer1State = 'idle';
+  
+  // 攻撃中は他の動作を制限
+  if (player.isAttacking) {
+    newPlayer1State = 'attack1';
+  } else if (player1Input.guard) {
     player.guard()
-    player.switchSprite('guard')
+    newPlayer1State = 'guard';
   } else if (player1Input.crouch) {
     player.crouch()
-    player.switchSprite('crouch')
+    newPlayer1State = 'crouch';
   } else if (player1Input.attack) {
     player.attack()
+    newPlayer1State = 'attack1';
   } else if (player1Input.left) {
     player.velocity.x = -5
-    player.switchSprite('run')
+    newPlayer1State = 'run';
   } else if (player1Input.right) {
     player.velocity.x = 5
-    player.switchSprite('run')
-  } else {
-    player.switchSprite('idle')
+    newPlayer1State = 'run';
   }
 
+  // 状態が変わった時のみスプライトを切り替え
+  if (newPlayer1State !== player1CurrentState) {
+    player.switchSprite(newPlayer1State);
+    player1CurrentState = newPlayer1State;
+  }
   // ジャンプ処理（しゃがみ中でも可能）
   if (player1Input.jump && player.position.y >= 330) {
     player.velocity.y = -20
   }
 
-  // jumping
+  // ジャンプ状態の優先処理
   if (player.velocity.y < 0) {
-    player.switchSprite('jump')
+    if (player1CurrentState !== 'jump') {
+      player.switchSprite('jump')
+      player1CurrentState = 'jump';
+    }
   } else if (player.velocity.y > 0) {
-    player.switchSprite('fall')
-  }
-
-  // プレイヤー2のポーズ制御  
-  if (player2Input.guard) {
+    if (player1CurrentState !== 'fall') {
+      player.switchSprite('fall')
+      player1CurrentState = 'fall';
+    }
+  }  // プレイヤー2のポーズ制御  
+  let newPlayer2State = 'idle';
+  
+  // 攻撃中は他の動作を制限
+  if (enemy.isAttacking) {
+    newPlayer2State = 'attack1';
+  } else if (player2Input.guard) {
     enemy.guard()
-    enemy.switchSprite('guard')
+    newPlayer2State = 'guard';
   } else if (player2Input.crouch) {
     enemy.crouch()
-    enemy.switchSprite('crouch')
+    newPlayer2State = 'crouch';
   } else if (player2Input.attack) {
     enemy.attack()
+    newPlayer2State = 'attack1';
   } else if (player2Input.left) {
     enemy.velocity.x = -5
-    enemy.switchSprite('run')
+    newPlayer2State = 'run';
   } else if (player2Input.right) {
     enemy.velocity.x = 5
-    enemy.switchSprite('run')
-  } else {
-    enemy.switchSprite('idle')
+    newPlayer2State = 'run';
   }
 
+  // 状態が変わった時のみスプライトを切り替え
+  if (newPlayer2State !== player2CurrentState) {
+    enemy.switchSprite(newPlayer2State);
+    player2CurrentState = newPlayer2State;
+  }
   // ジャンプ処理（しゃがみ中でも可能）
   if (player2Input.jump && enemy.position.y >= 330) {
     enemy.velocity.y = -20
   }
 
-  // jumping
+  // ジャンプ状態の優先処理
   if (enemy.velocity.y < 0) {
-    enemy.switchSprite('jump')
+    if (player2CurrentState !== 'jump') {
+      enemy.switchSprite('jump')
+      player2CurrentState = 'jump';
+    }
   } else if (enemy.velocity.y > 0) {
-    enemy.switchSprite('fall')
+    if (player2CurrentState !== 'fall') {
+      enemy.switchSprite('fall')
+      player2CurrentState = 'fall';
+    }
   }
 
   // detect for collision & enemy gets hit
@@ -385,8 +418,7 @@ function animate() {
     }) &&
     player.isAttacking &&
     player.framesCurrent === 4
-  ) {
-    enemy.takeHit()
+  ) {    enemy.takeHit()
     player.isAttacking = false
 
     gsap.to('#enemyHealth', {
@@ -394,10 +426,11 @@ function animate() {
     })
   }
 
+  // この部分は削除（updateメソッドで処理）
   // if player misses
-  if (player.isAttacking && player.framesCurrent === 4) {
-    player.isAttacking = false
-  }
+  // if (player.isAttacking && player.framesCurrent === 4) {
+  //   player.isAttacking = false
+  // }
 
   // this is where our player gets hit
   if (
