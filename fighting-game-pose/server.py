@@ -21,6 +21,14 @@ SMOOTHING_STREAK = 3
 def index():
     return send_from_directory('.', 'index.html')
 
+@app.route('/js/<path:filename>')
+def serve_js(filename):
+    return send_from_directory('js', filename)
+
+@app.route('/<path:filename>')
+def serve_root_files(filename):
+    return send_from_directory('.', filename)
+
 @sock.route('/ws')
 def pose_websocket(ws):
     print("WebSocket connected!")
