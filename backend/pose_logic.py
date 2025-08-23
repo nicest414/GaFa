@@ -65,27 +65,29 @@ class Thresholds:
 
     # GUARD 条件: 「両手が顔/肩の近く」かつ「肘が曲がっている」。
     # guard_elbow_angle_max: 肘の曲がり（小さいほど曲げ）。120〜140で調整。低いほど厳しい。
-    guard_elbow_angle_max: float = 130.0
+    guard_elbow_angle_max: float = 120.0
     # guard_wrist_to_face_scale: 手首-鼻が近いほど良い。1.0〜1.4。小さくするほど厳しい。
-    guard_wrist_to_face_scale: float = 1.2
+    guard_wrist_to_face_scale: float = 1.1
     # guard_wrist_to_shoulder_scale: 手首-肩が近いかどうか。0.6〜1.0。小さくするほど厳しい。
-    guard_wrist_to_shoulder_scale: float = 0.8
+    guard_wrist_to_shoulder_scale: float = 0.6
 
     # PUNCH 条件: 「肘が伸びている」かつ「手首が肩から十分離れている」かつ「肩高さと大きくズレない」。
     # punch_elbow_angle_min: 150〜175。高いほど「しっかり伸ばした」時のみ反応。
-    punch_elbow_angle_min: float = 150.0
+    punch_elbow_angle_min: float = 130.0
     # punch_wrist_to_shoulder_scale: 手首-肩の距離比。1.0〜1.3。大きくすると厳しい。
-    punch_wrist_to_shoulder_scale: float = 1.1
+    punch_wrist_to_shoulder_scale: float = 1.0
     # punch_wrist_y_align_scale: 肩高さからの許容ずれ（y方向）。0.2〜0.5。小さいほど厳しい。
-    punch_wrist_y_align_scale: float = 0.35
+    punch_wrist_y_align_scale: float = 0.5
+    # Z軸 PUNCH 条件: 手首が肩よりどれだけ前に出ているかの最小値
+    punch_wrist_z_diff_min: float = 0.1
 
     # KICK 条件（常時検出抑止のため厳格化）。
     # kick_knee_angle_min: 膝の伸び。160〜175。高いほど「しっかり伸ばした」時のみ反応。
-    kick_knee_angle_min: float = 165.0
+    kick_knee_angle_min: float = 130.0
     # 旧仕様の直線距離しきい値（互換のため残置）。通常は無効。
-    kick_ankle_to_hip_scale: float = 1.2
+    kick_ankle_to_hip_scale: float = 1.1
     # 新基準1: 股関節から足首が x 方向に前へ出ている比率。0.4〜0.9。大きくすると厳しい。
-    kick_ankle_x_to_hip_scale: float = 0.6
+    kick_ankle_x_to_hip_scale: float = 0.7
     # 新基準2: 足首が膝より十分「上」（y が小さい）かどうかのバッファ。0.2〜0.4。大きくすると検出しやすい。
     kick_ankle_above_knee_scale: float = 0.3
 
@@ -197,14 +199,23 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
         l_elbow_angle = _angle_deg(l_sh, l_el, l_wr)
         l_wrist_far = _dist(l_wr, l_sh) >= TH.punch_wrist_to_shoulder_scale * scale
         l_wrist_y_align = abs(l_wr.y - l_sh.y) <= TH.punch_wrist_y_align_scale * scale
-        punch_left = (l_elbow_angle >= TH.punch_elbow_angle_min) and l_wrist_far and l_wrist_y_align
+         # ▼▼▼ Z軸の条件を追加 ▼▼▼
+    # 手首が肩より前に出ているか (shoulder.z - wrist.z が正の値になる)
+        l_wrist_pushed_forward = (l_sh.z - l_wr.z) >= TH.punch_wrist_z_diff_min
+
+        # ↓ 横(XY)か前(Z)のどちらかを満たせばOK、という形に修正
+        punch_left = (l_elbow_angle >= TH.punch_elbow_angle_min) and l_wrist_y_align and (l_wrist_far or l_wrist_pushed_forward)
 
     if has(PL.RIGHT_SHOULDER, PL.RIGHT_ELBOW, PL.RIGHT_WRIST):
         r_sh, r_el, r_wr = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_ELBOW], landmarks[PL.RIGHT_WRIST]
         r_elbow_angle = _angle_deg(r_sh, r_el, r_wr)
         r_wrist_far = _dist(r_wr, r_sh) >= TH.punch_wrist_to_shoulder_scale * scale
         r_wrist_y_align = abs(r_wr.y - r_sh.y) <= TH.punch_wrist_y_align_scale * scale
-        punch_right = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_far and r_wrist_y_align
+         # ▼▼▼ Z軸の条件を追加 ▼▼▼
+    # 手首が肩より前に出ているか (shoulder.z - wrist.z が正の値になる)
+        r_wrist_pushed_forward = (r_sh.z - r_wr.z) >= TH.punch_wrist_z_diff_min
+
+        punch_right = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_y_align and (r_wrist_far or r_wrist_pushed_forward)
 
     if punch_left or punch_right:
         return "PUNCH"
@@ -257,6 +268,8 @@ if __name__ == "__main__":  # pragma: no cover
     mp_pose = mp.solutions.pose
 
     cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     if not cap.isOpened():
         print("Error: Camera not found.")
         raise SystemExit(1)
