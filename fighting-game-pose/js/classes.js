@@ -15,22 +15,51 @@ class Sprite {
     this.framesMax = framesMax
     this.framesCurrent = 0
     this.framesElapsed = 0
-    this.framesHold = 5
+    this.framesHold = 8  // 5から8に変更してアニメーションを少し遅く、安定させる
     this.offset = offset
+    // this.framesX は Fighter クラスの switchSprite で設定されます
   }
 
   draw() {
+    // framesMaxが1の場合は単一画像として扱う（背景など）
+    if (this.framesMax === 1) {
+      c.drawImage(
+        this.image,
+        this.position.x - this.offset.x,
+        this.position.y - this.offset.y,
+        this.image.width * this.scale,
+        this.image.height * this.scale
+      );
+      return;
+    }
+
+    // スプライトシートの場合の処理
+    // フレームサイズを256x256に固定
+    const frameWidth = 256;
+    const frameHeight = 256;
+
+    // スプライトシートの横のフレーム数を取得（未定義ならframesMaxを代入）
+    const framesInRow = this.framesX || this.framesMax;
+
+    // 現在のフレームの行と列を計算
+    const currentColumn = this.framesCurrent % framesInRow;
+    const currentRow = Math.floor(this.framesCurrent / framesInRow);
+
+    // 切り出す画像のソース位置を決定
+    const sourceX = currentColumn * frameWidth;
+    const sourceY = currentRow * frameHeight;
+
     c.drawImage(
       this.image,
-      this.framesCurrent * (this.image.width / this.framesMax),
-      0,
-      this.image.width / this.framesMax,
-      this.image.height,
+      sourceX,
+      sourceY,
+      frameWidth, // 固定値
+      frameHeight, // 固定値
       this.position.x - this.offset.x,
       this.position.y - this.offset.y,
-      (this.image.width / this.framesMax) * this.scale,
-      this.image.height * this.scale
-    )
+      frameWidth * this.scale, // スケールを適用
+      frameHeight * this.scale // スケールを適用
+    );
   }
 
   animateFrames() {
@@ -92,13 +121,22 @@ class Fighter extends Sprite {
     this.health = 100
     this.framesCurrent = 0
     this.framesElapsed = 0
-    this.framesHold = 5
+    this.framesHold = 8
     this.sprites = sprites
     this.dead = false
 
-    for (const sprite in this.sprites) {
-      sprites[sprite].image = new Image()
-      sprites[sprite].image.src = sprites[sprite].imageSrc
+    for (const spriteKey in this.sprites) {
+      const sprite = this.sprites[spriteKey]
+      sprite.image = new Image()
+      sprite.image.onload = () => {
+        // もしスプライトにframesMaxが手動で設定されていなければ、自動計算する
+        if (!sprite.framesMax) {
+          sprite.framesX = Math.floor(sprite.image.width / 256)
+          const framesY = Math.floor(sprite.image.height / 256)
+          sprite.framesMax = sprite.framesX * framesY
+        }
+      }
+      sprite.image.src = sprite.imageSrc
     }
   }
 
@@ -192,188 +230,72 @@ class Fighter extends Sprite {
     )
       return
 
+    const setSprite = (newSprite) => {
+        // 同じスプライトの場合は何もしない（アニメーション継続）
+        if (this.image === newSprite.image) {
+            return;
+        }
+        
+        // 新しいスプライトに切り替え
+        this.image = newSprite.image;
+        this.framesMax = newSprite.framesMax;
+        this.framesX = newSprite.framesX || newSprite.framesMax;
+        this.framesCurrent = 0; // 新しいスプライトの場合のみリセット
+    }
+
     switch (sprite) {
       case 'idle':
-        if (this.image !== this.sprites.idle.image) {
-          this.image = this.sprites.idle.image
-          this.framesMax = this.sprites.idle.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.idle);
         break
       case 'run':
-        if (this.image !== this.sprites.run.image) {
-          this.image = this.sprites.run.image
-          this.framesMax = this.sprites.run.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.run);
         break
       case 'jump':
-        if (this.image !== this.sprites.jump.image) {
-          this.image = this.sprites.jump.image
-          this.framesMax = this.sprites.jump.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.jump);
         break
       case 'fall':
-        if (this.image !== this.sprites.fall.image) {
-          this.image = this.sprites.fall.image
-          this.framesMax = this.sprites.fall.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.fall);
         break
       case 'attack1':
-        if (this.image !== this.sprites.attack1.image) {
-          this.image = this.sprites.attack1.image
-          this.framesMax = this.sprites.attack1.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.attack1);
         break
-      
-      // === ポーズ対応モーション ===
-      
-      // 攻撃系ポーズ
-      case 'punch':
-        // パンチモーション（現在はattack1を使用）
-        if (this.image !== this.sprites.attack1.image) {
-          this.image = this.sprites.attack1.image
-          this.framesMax = this.sprites.attack1.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      case 'kick':
-        // キックモーション（将来的に専用アニメーション追加可能）
-        if (this.sprites.kick && this.image !== this.sprites.kick.image) {
-          this.image = this.sprites.kick.image
-          this.framesMax = this.sprites.kick.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: attack1を使用
-          this.image = this.sprites.attack1.image
-          this.framesMax = this.sprites.attack1.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      case 'crouch_punch':
-        // しゃがみパンチモーション
-        if (this.sprites.crouchPunch && this.image !== this.sprites.crouchPunch.image) {
-          this.image = this.sprites.crouchPunch.image
-          this.framesMax = this.sprites.crouchPunch.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: attack1を使用
-          this.image = this.sprites.attack1.image
-          this.framesMax = this.sprites.attack1.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      case 'crouch_kick':
-        // しゃがみキックモーション
-        if (this.sprites.crouchKick && this.image !== this.sprites.crouchKick.image) {
-          this.image = this.sprites.crouchKick.image
-          this.framesMax = this.sprites.crouchKick.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: attack1を使用
-          this.image = this.sprites.attack1.image
-          this.framesMax = this.sprites.attack1.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      
-      // 防御系ポーズ
-      case 'guard':
-        // ガードモーション
-        if (this.sprites.guard && this.image !== this.sprites.guard.image) {
-          this.image = this.sprites.guard.image
-          this.framesMax = this.sprites.guard.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: idleを使用
-          this.image = this.sprites.idle.image
-          this.framesMax = this.sprites.idle.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      case 'crouch_guard':
-        // しゃがみガードモーション
-        if (this.sprites.crouchGuard && this.image !== this.sprites.crouchGuard.image) {
-          this.image = this.sprites.crouchGuard.image
-          this.framesMax = this.sprites.crouchGuard.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: idleを使用
-          this.image = this.sprites.idle.image
-          this.framesMax = this.sprites.idle.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      
-      // 移動系ポーズ
-      case 'forward':
-        // 前進モーション
-        if (this.sprites.forward && this.image !== this.sprites.forward.image) {
-          this.image = this.sprites.forward.image
-          this.framesMax = this.sprites.forward.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: runを使用
-          this.image = this.sprites.run.image
-          this.framesMax = this.sprites.run.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      case 'backward':
-        // 後退モーション
-        if (this.sprites.backward && this.image !== this.sprites.backward.image) {
-          this.image = this.sprites.backward.image
-          this.framesMax = this.sprites.backward.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: runを使用
-          this.image = this.sprites.run.image
-          this.framesMax = this.sprites.run.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      
-      // 姿勢系ポーズ
-      case 'crouch':
-        // しゃがみモーション
-        if (this.sprites.crouch && this.image !== this.sprites.crouch.image) {
-          this.image = this.sprites.crouch.image
-          this.framesMax = this.sprites.crouch.framesMax
-          this.framesCurrent = 0
-        } else {
-          // フォールバック: idleを使用
-          this.image = this.sprites.idle.image
-          this.framesMax = this.sprites.idle.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      case 'stand':
-        // 通常立ちモーション
-        if (this.image !== this.sprites.idle.image) {
-          this.image = this.sprites.idle.image
-          this.framesMax = this.sprites.idle.framesMax
-          this.framesCurrent = 0
-        }
-        break
-      
-      // === 既存モーション ===
-      
       case 'takeHit':
-        if (this.image !== this.sprites.takeHit.image) {
-          this.image = this.sprites.takeHit.image
-          this.framesMax = this.sprites.takeHit.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.takeHit);
         break
       case 'death':
-        if (this.image !== this.sprites.death.image) {
-          this.image = this.sprites.death.image
-          this.framesMax = this.sprites.death.framesMax
-          this.framesCurrent = 0
-        }
+        setSprite(this.sprites.death);
+        break
+      
+      // Pose-related sprites
+      case 'punch':
+        setSprite(this.sprites.punch || this.sprites.attack1);
+        break
+      case 'kick':
+        setSprite(this.sprites.kick || this.sprites.attack1);
+        break
+      case 'crouch_punch':
+        setSprite(this.sprites.crouchPunch || this.sprites.attack1);
+        break
+      case 'crouch_kick':
+        setSprite(this.sprites.crouchKick || this.sprites.attack1);
+        break
+      case 'guard':
+        setSprite(this.sprites.guard || this.sprites.idle);
+        break
+      case 'crouch_guard':
+        setSprite(this.sprites.crouchGuard || this.sprites.idle);
+        break
+      case 'forward':
+        setSprite(this.sprites.forward || this.sprites.run);
+        break
+      case 'backward':
+        setSprite(this.sprites.backward || this.sprites.run);
+        break
+      case 'crouch':
+        setSprite(this.sprites.crouch || this.sprites.idle);
+        break
+      case 'stand':
+        setSprite(this.sprites.stand || this.sprites.idle);
         break
     }
   }
