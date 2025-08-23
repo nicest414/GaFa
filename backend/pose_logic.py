@@ -322,63 +322,12 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
     crouch_cond = crouch_left or crouch_right
 
     # --- CROUCH_PUNCH 検出（しゃがみ＋片腕伸展） ---
-    crouch_punch_left = False
-    crouch_punch_right = False
-    # 左側
-    if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE, PL.LEFT_SHOULDER, PL.LEFT_ELBOW, PL.LEFT_WRIST):
-        l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
-        l_sh, l_el, l_wr = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_ELBOW], landmarks[PL.LEFT_WRIST]
-        l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
-        l_hip_down = l_hip.y > l_kn.y
-        crouch_cond = (l_knee_angle <= 90.0) and l_hip_down
-        l_elbow_angle = _angle_deg(l_sh, l_el, l_wr)
-        l_wrist_far = _dist(l_wr, l_sh) >= TH.punch_wrist_to_shoulder_scale * scale
-        l_wrist_y_align = abs(l_wr.y - l_sh.y) <= TH.punch_wrist_y_align_scale * scale
-        punch_cond = (l_elbow_angle >= TH.punch_elbow_angle_min) and l_wrist_far and l_wrist_y_align
-        crouch_punch_left = crouch_cond and punch_cond
-
-    # 右側
-    if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE, PL.RIGHT_SHOULDER, PL.RIGHT_ELBOW, PL.RIGHT_WRIST):
-        r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
-        r_sh, r_el, r_wr = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_ELBOW], landmarks[PL.RIGHT_WRIST]
-        r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
-        r_hip_down = r_hip.y > r_kn.y
-        crouch_cond = (r_knee_angle <= 90.0) and r_hip_down
-        r_elbow_angle = _angle_deg(r_sh, r_el, r_wr)
-        r_wrist_far = _dist(r_wr, r_sh) >= TH.punch_wrist_to_shoulder_scale * scale
-        r_wrist_y_align = abs(r_wr.y - r_sh.y) <= TH.punch_wrist_y_align_scale * scale
-        punch_cond = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_far and r_wrist_y_align
-        crouch_punch_right = crouch_cond and punch_cond
-
-    crouch_punch_cond = crouch_punch_left or crouch_punch_right
+    crouch_punch_cond = False
+    crouch_punch_cond = (crouch_left or crouch_right) and (punch_left or punch_right)
 
     # --- CROUCH_KICK 検出（しゃがみ＋片脚前方伸展） ---
-    crouch_kick_left = False
-    crouch_kick_right = False
-    # 左側
-    if has(PL.LEFT_HIP, PL.LEFT_KNEE, PL.LEFT_ANKLE):
-        l_hip, l_kn, l_an = landmarks[PL.LEFT_HIP], landmarks[PL.LEFT_KNEE], landmarks[PL.LEFT_ANKLE]
-        l_knee_angle = _angle_deg(l_hip, l_kn, l_an)
-        l_hip_down = l_hip.y > l_kn.y
-        crouch_cond = (l_knee_angle <= 90.0) and l_hip_down
-        # KICK条件（高く上げずに前方のみ）
-        l_knee_stretch = l_knee_angle >= TH.kick_knee_angle_min
-        l_ankle_far_x = abs(l_an.x - l_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
-        kick_cond = l_knee_stretch and l_ankle_far_x
-        crouch_kick_left = crouch_cond and kick_cond
-
-    # 右側
-    if has(PL.RIGHT_HIP, PL.RIGHT_KNEE, PL.RIGHT_ANKLE):
-        r_hip, r_kn, r_an = landmarks[PL.RIGHT_HIP], landmarks[PL.RIGHT_KNEE], landmarks[PL.RIGHT_ANKLE]
-        r_knee_angle = _angle_deg(r_hip, r_kn, r_an)
-        r_hip_down = r_hip.y > r_kn.y
-        crouch_cond = (r_knee_angle <= 90.0) and r_hip_down
-        r_knee_stretch = r_knee_angle >= TH.kick_knee_angle_min
-        r_ankle_far_x = abs(r_an.x - r_hip.x) >= TH.kick_ankle_x_to_hip_scale * scale
-        kick_cond = r_knee_stretch and r_ankle_far_x
-        crouch_kick_right = crouch_cond and kick_cond
-
-    crouch_kick_cond = crouch_kick_left or crouch_kick_right
+    crouch_kick_cond = False
+    crouch_kick_cond = (crouch_left or crouch_right) and (kick_left or kick_right)
 
     # --- CROUCH_GUARD 検出（しゃがみ＋両手ガード） ---
     crouch_guard_cond = crouch_cond and guard_cond
