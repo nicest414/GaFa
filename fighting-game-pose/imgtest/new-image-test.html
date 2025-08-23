@@ -630,19 +630,28 @@
                 
                 status.innerHTML = '<span style="color: #28a745;">✅ 描画成功</span>';
                 console.log(`🎨 ${fileData.name} - キャンバス描画成功`);
-                
-                // フレーム分析結果の表示
+                  // フレーム分析結果の表示
                 if (frames.frameCount > 1) {
                     const frameAnalysis = document.createElement('div');
                     frameAnalysis.className = 'frame-analysis';
-                    frameAnalysis.innerHTML = `
+                      let analysisHTML = `
                         <strong>フレーム分析結果:</strong><br>
                         検出フレーム数: ${frames.frameCount}<br>
+                        レイアウト: ${frames.layout || '横一列'}<br>
                         フレームサイズ: ${frames.frameWidth}x${frames.frameHeight}<br>
                         総画像サイズ: ${img.width}x${img.height}
                     `;
+                      // 候補がある場合は表示
+                    if (frames.analysis && frames.analysis.candidates) {
+                        analysisHTML += `<br><br><strong>他の候補:</strong><br>`;
+                        frames.analysis.candidates.slice(0, 3).forEach((candidate, index) => {
+                            const icon = index === 0 ? '✅' : '🔸';
+                            analysisHTML += `${icon} ${candidate.frameCount}フレーム (${candidate.layout}, ${candidate.frameWidth}x${candidate.frameHeight}px)<br>`;
+                        });
+                    }
                     
-                    // フレームコントロール
+                    frameAnalysis.innerHTML = analysisHTML;
+                      // フレームコントロール
                     const frameControls = document.createElement('div');
                     frameControls.className = 'frame-controls';
                     frameControls.innerHTML = `
@@ -652,6 +661,17 @@
                         <input type="range" class="frame-slider" id="frameSlider-${fileData.name}" 
                                min="0" max="${frames.frameCount - 1}" value="0" 
                                onchange="gotoFrame('${fileData.name}', this.value)">
+                    `;
+                    
+                    // フレーム数調整コントロール
+                    const frameAdjustControls = document.createElement('div');
+                    frameAdjustControls.className = 'frame-controls';
+                    frameAdjustControls.style.marginTop = '8px';
+                    frameAdjustControls.innerHTML = `
+                        <label style="font-size: 0.8em; color: #666;">フレーム数調整:</label>
+                        <input type="number" id="frameCountInput-${fileData.name}" value="${frames.frameCount}" 
+                               min="1" max="20" style="width: 50px; font-size: 0.8em; margin: 0 5px;">
+                        <button class="frame-button" onclick="adjustFrameCount('${fileData.name}')">適用</button>
                     `;
                     
                     // 自動再生コントロール
@@ -674,9 +694,9 @@
                     animationCanvas.width = frames.frameWidth;
                     animationCanvas.height = frames.frameHeight;
                     animationCanvas.id = `animationCanvas-${fileData.name}`;
-                    
-                    canvasItem.appendChild(frameAnalysis);
+                      canvasItem.appendChild(frameAnalysis);
                     canvasItem.appendChild(frameControls);
+                    canvasItem.appendChild(frameAdjustControls);
                     canvasItem.appendChild(autoPlayControls);
                     canvasItem.appendChild(animationCanvas);
                     
@@ -747,41 +767,109 @@
             canvasTest.style.display = 'none';
             
             console.log('🗑️ テスト結果をクリアしました');
-        }
-
-        // フレーム分析関数
+        }        // フレーム分析関数
         function analyzeFrames(img) {
             const width = img.naturalWidth;
             const height = img.naturalHeight;
             
-            // 横長の画像はスプライトシートの可能性が高い
-            if (width > height * 1.5) {
-                // 縦横比から推定フレーム数を計算
-                const aspectRatio = width / height;
-                let estimatedFrames = Math.round(aspectRatio);
+            console.log(`🔍 画像分析: ${width}x${height}px`);
+            
+            // 2段構成のスプライトシートかどうかを判定
+            if (width > height) {
+                const candidates = [];
                 
-                // 一般的なフレーム数に調整
-                if (estimatedFrames > 1 && estimatedFrames <= 20) {
-                    const frameWidth = Math.floor(width / estimatedFrames);
+                // 1. 横一列のスプライトシートを試す
+                for (let frames = 1; frames <= 20; frames++) {
+                    const frameWidth = width / frames;
+                    const frameAspectRatio = frameWidth / height;
+                    
+                    if (frameAspectRatio >= 0.5 && frameAspectRatio <= 2.0) {
+                        candidates.push({
+                            frameCount: frames,
+                            frameWidth: Math.floor(frameWidth),
+                            frameHeight: height,
+                            rows: 1,
+                            cols: frames,
+                            layout: '横一列',
+                            score: 1 - Math.abs(frameWidth - Math.round(frameWidth))
+                        });
+                    }
+                }
+                
+                // 2. 2段構成のスプライトシートを試す（各フレームが正方形の場合）
+                if (width >= height * 1.5) {
+                    // 各フレームが256x256の正方形と仮定
+                    const frameSize = Math.min(width / 2, height / 2);
+                    
+                    // 2段で様々な組み合わせを試す
+                    for (let cols = 2; cols <= 10; cols++) {
+                        for (let rows = 1; rows <= 2; rows++) {
+                            const totalFrames = cols * rows;
+                            const frameWidth = width / cols;
+                            const frameHeight = height / rows;
+                            
+                            // 正方形に近いフレームサイズを優先
+                            const aspectRatio = frameWidth / frameHeight;
+                            
+                            if (aspectRatio >= 0.8 && aspectRatio <= 1.2 && totalFrames <= 20) {
+                                const widthScore = 1 - Math.abs(frameWidth - Math.round(frameWidth));
+                                const heightScore = 1 - Math.abs(frameHeight - Math.round(frameHeight));
+                                const squareScore = 1 - Math.abs(aspectRatio - 1.0); // 正方形に近いほど高スコア
+                                
+                                candidates.push({
+                                    frameCount: totalFrames,
+                                    frameWidth: Math.floor(frameWidth),
+                                    frameHeight: Math.floor(frameHeight),
+                                    rows: rows,
+                                    cols: cols,
+                                    layout: `${rows}段${cols}列`,
+                                    score: (widthScore + heightScore + squareScore * 2) / 4 // 正方形を重視
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // 最も良いスコアの候補を選択
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => b.score - a.score);
+                    const best = candidates[0];
+                    
+                    console.log(`📊 フレーム分析候補:`);
+                    candidates.slice(0, 5).forEach((c, i) => {
+                        const mark = i === 0 ? '✅' : '🔸';
+                        console.log(`  ${mark} ${c.frameCount}フレーム (${c.layout}, ${c.frameWidth}x${c.frameHeight}px, スコア: ${c.score.toFixed(3)})`);
+                    });
+                    console.log(`✅ 選択: ${best.frameCount}フレーム (${best.layout})`);
+                    
                     return {
-                        frameCount: estimatedFrames,
-                        frameWidth: frameWidth,
-                        frameHeight: height,
-                        isSprite: true
+                        frameCount: best.frameCount,
+                        frameWidth: best.frameWidth,
+                        frameHeight: best.frameHeight,
+                        rows: best.rows,
+                        cols: best.cols,
+                        layout: best.layout,
+                        isSprite: true,
+                        analysis: {
+                            candidates: candidates.slice(0, 5),
+                            aspectRatio: width / height
+                        }
                     };
                 }
             }
             
+            console.log(`📷 単一フレーム画像として判定`);
             // 単一フレーム
             return {
                 frameCount: 1,
                 frameWidth: width,
                 frameHeight: height,
+                rows: 1,
+                cols: 1,
+                layout: '単一フレーム',
                 isSprite: false
             };
-        }
-
-        // フレーム描画関数
+        }        // フレーム描画関数
         function drawFrame(imageName, frameIndex) {
             const data = window.frameData[imageName];
             if (!data) return;
@@ -792,9 +880,23 @@
             const ctx = canvas.getContext('2d');
             const frames = data.frames;
             
-            // フレーム位置計算
-            const sourceX = frameIndex * frames.frameWidth;
-            const sourceY = 0;
+            // 2段構成対応: フレーム位置計算
+            let sourceX, sourceY;
+            
+            if (frames.rows && frames.cols) {
+                // 2段構成の場合
+                const row = Math.floor(frameIndex / frames.cols);
+                const col = frameIndex % frames.cols;
+                
+                sourceX = col * frames.frameWidth;
+                sourceY = row * frames.frameHeight;
+                
+                console.log(`🎬 フレーム${frameIndex + 1}: 段${row + 1}, 列${col + 1} (${sourceX}, ${sourceY})`);
+            } else {
+                // 従来の横一列の場合
+                sourceX = frameIndex * frames.frameWidth;
+                sourceY = 0;
+            }
             
             // キャンバスクリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -865,9 +967,7 @@
                 playButton.textContent = '⏸ 停止';
                 playButton.classList.add('playing');
             }
-        }
-
-        function changeAnimationSpeed(imageName) {
+        }        function changeAnimationSpeed(imageName) {
             const data = window.frameData[imageName];
             if (!data || !data.isPlaying) return;
             
@@ -877,6 +977,90 @@
             data.animationId = setInterval(() => {
                 nextFrame(imageName);
             }, speed);
+        }        // フレーム数調整機能
+        function adjustFrameCount(imageName) {
+            const data = window.frameData[imageName];
+            if (!data) return;
+            
+            const newFrameCount = parseInt(document.getElementById(`frameCountInput-${imageName}`).value);
+            if (newFrameCount < 1 || newFrameCount > 20) {
+                alert('フレーム数は1〜20の範囲で入力してください');
+                return;
+            }
+            
+            console.log(`🔧 ${imageName}: フレーム数を${data.frames.frameCount}から${newFrameCount}に調整`);
+            
+            // アニメーション停止
+            if (data.isPlaying) {
+                clearInterval(data.animationId);
+                data.isPlaying = false;
+                const playButton = document.getElementById(`playButton-${imageName}`);
+                if (playButton) {
+                    playButton.textContent = '▶ 再生';
+                    playButton.classList.remove('playing');
+                }
+            }
+            
+            // 新しいレイアウトを推定
+            const img = data.image;
+            let newRows = 1, newCols = newFrameCount;
+            let newFrameWidth = Math.floor(img.naturalWidth / newCols);
+            let newFrameHeight = img.naturalHeight;
+            
+            // 2段構成の可能性をチェック
+            if (newFrameCount > 6) {
+                for (let cols = 2; cols <= Math.ceil(newFrameCount / 2); cols++) {
+                    const rows = Math.ceil(newFrameCount / cols);
+                    if (rows <= 2) {
+                        const frameWidth = img.naturalWidth / cols;
+                        const frameHeight = img.naturalHeight / rows;
+                        const aspectRatio = frameWidth / frameHeight;
+                        
+                        // より正方形に近い場合を選択
+                        if (Math.abs(aspectRatio - 1.0) < Math.abs((newFrameWidth / newFrameHeight) - 1.0)) {
+                            newRows = rows;
+                            newCols = cols;
+                            newFrameWidth = Math.floor(frameWidth);
+                            newFrameHeight = Math.floor(frameHeight);
+                        }
+                    }
+                }
+            }
+            
+            // フレーム情報を更新
+            data.frames.frameCount = newFrameCount;
+            data.frames.frameWidth = newFrameWidth;
+            data.frames.frameHeight = newFrameHeight;
+            data.frames.rows = newRows;
+            data.frames.cols = newCols;
+            data.frames.layout = newRows === 1 ? '横一列' : `${newRows}段${newCols}列`;
+            data.currentFrame = 0;
+            
+            console.log(`📐 新レイアウト: ${data.frames.layout} (${newFrameWidth}x${newFrameHeight}px)`);
+            
+            // キャンバスサイズを更新
+            const canvas = document.getElementById(`animationCanvas-${imageName}`);
+            if (canvas) {
+                canvas.width = newFrameWidth;
+                canvas.height = newFrameHeight;
+            }
+            
+            // UIを更新
+            const frameInfo = document.getElementById(`frameInfo-${imageName}`);
+            if (frameInfo) {
+                frameInfo.textContent = `1 / ${newFrameCount}`;
+            }
+            
+            const slider = document.getElementById(`frameSlider-${imageName}`);
+            if (slider) {
+                slider.max = newFrameCount - 1;
+                slider.value = 0;
+            }
+            
+            // 最初のフレームを表示
+            drawFrame(imageName, 0);
+            
+            console.log(`✅ ${imageName}: フレーム調整完了`);
         }
 
         // 初期化
