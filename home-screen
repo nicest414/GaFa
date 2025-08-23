@@ -1,0 +1,82 @@
+import tkinter as tk
+from tkinter import font as tkfont
+from PIL import Image, ImageTk
+
+# ウィンドウを作成
+root = tk.Tk()
+root.title("ゲーム画面のモックアップ")
+root.geometry("800x600")
+root.configure(bg="#f0f0f0")
+
+# 画面全体を囲むメインフレーム
+main_frame = tk.Frame(root, bg="white", bd=5, relief="solid")
+main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+
+# 画面上部のバー
+top_bar = tk.Frame(main_frame, bg="#555555", height=30, bd=2, relief="solid")
+top_bar.pack(fill="x")
+
+# メインコンテンツエリア（左右のボックスと中央のキャラクター）
+content_frame = tk.Frame(main_frame, bg="white")
+content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+# --- 左右のボックスと中央のキャラクターの配置 ---
+# `side`を使って横に並べる
+left_box = tk.Frame(content_frame, bg="white", bd=3, relief="solid", width=180, height=330)
+left_box.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+left_box.pack_propagate(False) # 中身に合わせてサイズが変わるのを防ぐ
+
+
+
+# 中央のキャラクター
+try:
+    # 1. 画像ファイルのパスを指定します
+    image_path = "fighting-game-pose/img/gafa(wizard).png"
+
+    # 2. PillowのImage.open()で画像を開きます
+    pil_image = Image.open(image_path)
+    pil_image = pil_image.resize((270, 380))
+
+    # 3. Pillowの画像をTkinterが扱えるPhotoImageに変換します
+    tk_image = ImageTk.PhotoImage(pil_image)
+
+    # 4. Labelにimage引数を使って、変換した画像を渡します
+    center_char_label = tk.Label(content_frame, image=tk_image, bg="white")
+
+    # 5. ⚠️ 重要: 画像の参照を保持します
+    # これがないと、画像が画面から消えてしまう可能性があります
+    center_char_label.image = tk_image
+
+    center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+except FileNotFoundError:
+    # 画像ファイルが見つからない場合に備えて、エラー処理を行います
+    print(f"エラー: 画像ファイルが見つかりません: {image_path}")
+    # 代わりにテキストを表示するフォールバック処理
+    center_char_label = tk.Label(content_frame, text="人", bg="white", font=("Arial", 40, "bold"))
+    center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+
+right_box = tk.Frame(content_frame, bg="white", bd=3, relief="solid", width=180, height=330)
+right_box.pack(side="left", padx=10, pady=10, fill="both", expand=True )
+right_box.pack_propagate(False)
+
+
+# --- 下部のボタン ---
+bottom_bar = tk.Frame(main_frame, bg="#dddddd", bd=2, relief="solid")
+bottom_bar.pack(fill="x")
+
+def battle_start():
+    print("BATTLE START ボタンが押されました！")
+
+battle_button = tk.Button(bottom_bar, text="BATTLE START", command=battle_start,
+                          bg="#c00000", fg="white", font=("Arial", 16, "bold"),
+                          bd=3, relief="raised", padx=15, pady=10,
+                          activebackground="#e00000", activeforeground="white")
+battle_button.pack(pady=10)
+
+#修正
+bottom_bar.pack(side="bottom",fill="x")
+content_frame.pack(fill="both",expand=True, padx=20, pady=20)
+
+# ウィンドウのイベントループを開始
+root.mainloop()
