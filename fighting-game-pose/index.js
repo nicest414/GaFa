@@ -65,7 +65,7 @@ const player = new Fighter({
     x: 0,
     y: 0
   },
-  imageSrc: './img/samuraiMack/Idle.png',
+  imageSrc: './img/player1/gra_mot_standA.png',
   framesMax: 8,
   scale: 2.5,
   offset: {
@@ -76,12 +76,12 @@ const player = new Fighter({
     //アイドル、走る、パンチ、キック、立ちガード、しゃがみ、しゃがみパンチ、しゃがみキック、しゃがみガード、死亡
     // === 基本アニメーション ===
     idle: {
-      imageSrc: './img/samuraiMack/Idle.png',
+      imageSrc: './img/player1/gra_mot_standA.png',
       framesMax: 8
     },
     run: {
-      imageSrc: './img/player1/run.bmp',
-      framesMax: 8
+      imageSrc: './img/player1/gra_mot_walk_backA.png',
+      framesMax: 8,
     },
     jump: {
       imageSrc: './img/samuraiMack/Jump.png',
@@ -146,7 +146,7 @@ const player = new Fighter({
     
     // 姿勢系
     crouch: {
-      imageSrc: './img/samuraiMack/Idle.png',     // 専用アニメーション追加時に変更
+      imageSrc: './img/player1/gra_mot_standA.png',     // 専用アニメーション追加時に変更
       framesMax: 8
     },
     stand: {
