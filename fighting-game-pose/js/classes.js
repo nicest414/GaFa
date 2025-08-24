@@ -245,8 +245,7 @@ class Fighter extends Sprite {
           this.currentAction = null
           // 通常の立ちポーズに戻る
           this.switchSprite('stand')
-        }
-      }
+        }      }
       // 通常ガードの特別な制御
       else if (this.currentAction === 'guard') {
         // 1-3フレーム目：ガード入りアニメーション
@@ -271,11 +270,35 @@ class Fighter extends Sprite {
           // 通常の立ちポーズに戻る
           this.switchSprite('stand')
         }
+      }
+      // しゃがみの特別な制御
+      else if (this.currentAction === 'crouch') {
+        // 1-5フレーム目：しゃがみ入りアニメーション
+        if (this.framesCurrent < 4) { // 0,1,2,3,4 = 1-5フレーム目
+          this.framesCurrent++
+        }
+        // 5フレーム目で停止（信号が続く限り）
+        else if (this.framesCurrent === 4 && this.isGuardHolding) {
+          // フレームを進めない（停止）
+          return;
+        }
+        // 6-10フレーム目：しゃがみ抜けアニメーション
+        else if (this.guardExitRequested && this.framesCurrent < 9) {
+          this.framesCurrent++
+        }
+        // 10フレーム目まで完了したらアクション終了
+        else if (this.framesCurrent >= 9) {
+          this.framesCurrent = 0
+          this.guardExitRequested = false
+          this.isGuardHolding = false
+          this.currentAction = null
+          // 通常の立ちポーズに戻る
+          this.switchSprite('stand')
+        }
       } else {
         // 他のアニメーションは従来通り
         if (this.framesCurrent < this.framesMax - 1) {
-          this.framesCurrent++
-        } else {
+          this.framesCurrent++        } else {
           this.framesCurrent = 0
           
           // 攻撃アニメーションが終了した場合、攻撃状態をリセット
@@ -284,6 +307,7 @@ class Fighter extends Sprite {
             if (this.sprites[attackSprite] && 
                 this.image === this.sprites[attackSprite].image) {
               this.isAttacking = false;
+              console.log(`攻撃アニメーション完了: ${attackSprite}`)
               break;
             }
           }
@@ -291,12 +315,26 @@ class Fighter extends Sprite {
       }
     }
   }
-
   attack(attackType = 'punch') {
-    if (!this.isAttacking && !this.dead) {
-      this.isAttacking = true;
-      this.attackType = attackType;
+    // 攻撃中または死亡中は新しい攻撃を受け付けない
+    if (this.isAttacking || this.dead) {
+      console.log(`攻撃中のため新しい攻撃を無視: ${attackType}`)
+      return;
     }
+    
+    // 攻撃アニメーション中かどうかもチェック
+    const attackSprites = ['punch', 'kick', 'crouch_Punch', 'crouch_Kick'];
+    for (const attackSprite of attackSprites) {
+      if (this.sprites[attackSprite] && 
+          this.image === this.sprites[attackSprite].image &&
+          this.framesCurrent < this.sprites[attackSprite].framesMax - 1) {
+        console.log(`攻撃アニメーション中のため新しい攻撃を無視: ${attackType}`)
+        return;
+      }
+    }
+    
+    this.isAttacking = true;
+    this.attackType = attackType;
   }
 
   guard() {
@@ -325,13 +363,21 @@ class Fighter extends Sprite {
       console.log('しゃがみガード終了要求')
     }
   }
-
   // 通常ガード終了要求
   exitGuard() {
     if (this.currentAction === 'guard' && this.isGuardHolding) {
       this.guardExitRequested = true
       this.isGuardHolding = false
       console.log('通常ガード終了要求')
+    }
+  }
+
+  // しゃがみ終了要求
+  exitCrouch() {
+    if (this.currentAction === 'crouch' && this.isGuardHolding) {
+      this.guardExitRequested = true
+      this.isGuardHolding = false
+      console.log('しゃがみ終了要求')
     }
   }
 
@@ -350,31 +396,29 @@ class Fighter extends Sprite {
     } else if (!this.isGuarding) {
       this.switchSprite('takeHit')
     }
-  }
-  switchSprite(sprite) {
+  }  switchSprite(sprite) {
     if (this.image === this.sprites.death.image) {
       if (this.framesCurrent === this.sprites.death.framesMax - 1)
         this.dead = true
       return
     }
 
-    // 特別な制御中のアニメーションから他のアニメーションに切り替わる場合、状態をリセット
-    if (this.currentAction && sprite !== this.currentAction && 
-        sprite !== 'crouch_guard' && sprite !== 'guard' && sprite !== 'crouch_punch') {
-      console.log(`アニメーション強制切り替え: ${this.currentAction} → ${sprite}`)
-      this.currentAction = null
-      this.isGuardHolding = false
-      this.guardExitRequested = false
-    }
-
-    // overriding all other animations with attack animations
+    // 攻撃アニメーション中は他のアニメーションを受け付けない（最優先）
     const attackSprites = ['punch', 'kick', 'crouch_Punch', 'crouch_Kick'];
     for (const attackSprite of attackSprites) {
       if (this.sprites[attackSprite] && 
           this.image === this.sprites[attackSprite].image &&
           this.framesCurrent < this.sprites[attackSprite].framesMax - 1) {
+        console.log(`攻撃中のため入力を無視: ${sprite}`)
         return;
       }
+    }    // 特別な制御中のアニメーションから他のアニメーションに切り替わる場合、状態をリセット
+    if (this.currentAction && sprite !== this.currentAction && 
+        sprite !== 'crouch_guard' && sprite !== 'guard' && sprite !== 'crouch_punch' && sprite !== 'crouch') {
+      console.log(`アニメーション強制切り替え: ${this.currentAction} → ${sprite}`)
+      this.currentAction = null
+      this.isGuardHolding = false
+      this.guardExitRequested = false
     }
 
     // override when fighter gets hit
@@ -472,11 +516,15 @@ class Fighter extends Sprite {
         if (this.sprites.backward) {
           setSprite(this.sprites.backward);
         } else if (this.sprites.run) {
-          setSprite(this.sprites.run);
-        }
+          setSprite(this.sprites.run);        }
         break
       case 'crouch':
         if (this.sprites.crouch) {
+          // しゃがみ開始時の状態設定
+          this.currentAction = 'crouch'
+          this.isGuardHolding = true
+          this.guardExitRequested = false
+          this.framesCurrent = 0  // アニメーションを最初から開始
           setSprite(this.sprites.crouch);
         } else if (this.sprites.idle) {
           setSprite(this.sprites.idle);
