@@ -30,7 +30,8 @@ socket.onmessage = function (event) {
     if (data.pose) {
       // デバッグ用の表示を更新
       document.getElementById('player1-pose').textContent = data.pose;
-      
+      poseController.setPlayer1Pose(data.pose);
+
       // poseControllerオブジェクトに現在のポーズを伝える
       // ※pose-controller.js側で受信したポーズ名を処理する想定です
       // 例えば、poseControllerに以下のような関数を作って連携します。

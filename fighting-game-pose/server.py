@@ -33,7 +33,7 @@ def serve_root_files(filename):
 def pose_websocket(ws):
     print("WebSocket connected!")
 
-    cap = cv2.VideoCapture(1) # カメラに合わせてこの数字は変更してください
+    cap = cv2.VideoCapture(0) # カメラに合わせてこの数字は変更してください
     if not cap.isOpened():
         print("Error: Camera not found.")
         ws.send(json.dumps({"error": "Camera not found."}))
