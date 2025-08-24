@@ -1,6 +1,18 @@
 import tkinter as tk
 from tkinter import font as tkfont
 from PIL import Image, ImageTk
+import pygame
+import os
+
+# pygameを初期化
+pygame.mixer.init()
+
+# 変数を使う前に、スクリプトのディレクトリを定義
+script_dir = os.path.dirname(__file__)
+
+# 音楽ファイルの絶対パスを構築
+music_file_path = os.path.join(script_dir, "gafa_home_bgm.mp3")
+
 
 # ウィンドウを作成
 root = tk.Tk()
@@ -78,5 +90,29 @@ battle_button.pack(pady=10)
 bottom_bar.pack(side="bottom",fill="x")
 content_frame.pack(fill="both",expand=True, padx=20, pady=20)
 
+
+# --- BGM再生の処理をここに移す ---
+try:
+    pygame.mixer.music.load(music_file_path)
+    # BGMを無限ループで再生
+    pygame.mixer.music.play(loops=-1) 
+    print("BGMが再生されました。")
+except pygame.error as e:
+    print(f"音楽の再生中にエラーが発生しました: {e}")
+
+# 画面が閉じられるときに実行される関数を定義
+def on_closing():
+    print("ウィンドウが閉じられ、BGMが停止します。")
+    # BGMを停止
+    pygame.mixer.music.stop()
+    # ウィンドウを破棄
+    root.destroy()
+
+# ウィンドウのクローズイベント（×ボタン）にon_closing関数をバインド
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
 # ウィンドウのイベントループを開始
 root.mainloop()
+
+# Tkinterのイベントループが終了した後にpygameを終了
+pygame.quit()
