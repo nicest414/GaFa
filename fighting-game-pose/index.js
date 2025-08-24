@@ -381,6 +381,12 @@ function animate() {
   } else if (player1Input.attack) {
     player.attack('punch');
     newPlayer1State = player1Input.animationName;
+  } else if (player1Input.crouchKick) {  // ← しゃがみキックの独立判定
+    player.attack('crouch_kick');
+    newPlayer1State = player1Input.animationName;
+  } else if (player1Input.crouchPunch) {  // ← しゃがみパンチの独立判定
+    player.attack('crouch_punch');
+    newPlayer1State = player1Input.animationName;
   } else if (player1Input.left && player1LeftEdge > gosa) { // ← 修正：左端チェックを追加
     player.velocity.x = -5
     newPlayer1State = player1Input.animationName;
@@ -430,6 +436,12 @@ function animate() {
   } else if (player2Input.attack) {
     enemy.attack('punch');
     newPlayer2State = player2Input.animationName;
+  } else if (player2Input.crouchKick) {  // ← しゃがみキックの独立判定
+    enemy.attack('crouch_kick');
+    newPlayer2State = player2Input.animationName;
+  } else if (player2Input.crouchPunch) {  // ← しゃがみパンチの独立判定
+    enemy.attack('crouch_punch');
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.left && player2LeftEdge > gosa) { // ← 修正：左端チェックを追加
     enemy.velocity.x = -5
     newPlayer2State = player2Input.animationName;
@@ -464,8 +476,23 @@ function animate() {
   // detect for collision & enemy gets hit
   if (
     rectangularCollision({
-      rectangle1: player,
-      rectangle2: enemy
+      rectangle1: {
+        attackBox: player.attackBox,
+        position: {
+          x: player.position.x - player.offset.x + 75,
+          y: player.position.y
+        },
+        width: player.width,
+        height: player.height
+      },
+      rectangle2: {
+        position: {
+          x: enemy.position.x - enemy.offset.x + 75,
+          y: enemy.position.y
+        },
+        width: enemy.width,
+        height: enemy.height
+      }
     }) &&
     player.isAttacking &&
     player.framesCurrent === 4
