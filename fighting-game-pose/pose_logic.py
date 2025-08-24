@@ -95,7 +95,10 @@ class Thresholds:
 
     # Z軸 FORWARD/BACKWARD 条件: 肩が腰よりどれだけ前後にいるか
     forward_lean_z_diff_min: float = 0.1
-    backward_lean_z_diff_min: float = 0.1
+
+    # ▼▼▼ 新しい後傾のルール（肩と足首のZ軸の差）を追加 ▼▼▼
+    # 後傾条件: 肩が足首よりどれだけ後ろにあるかの最小値（肩幅比）
+    backward_lean_shoulders_ankles_z_diff: float = 0.01
 
     # ▼▼▼ ここに新しいCROUCHのルールを追加 ▼▼▼
     # CROUCH 条件: 膝の曲がり具合
@@ -103,7 +106,7 @@ class Thresholds:
     crouch_knee_angle_max: float = 140.0
     # ▼▼▼ 新しいルールを追加 ▼▼▼
     # 腰と足首の最大Y距離（肩幅比）。大きいほど浅いしゃがみで反応
-    crouch_hip_ankle_dist_max: float = 1.2
+    crouch_hip_ankle_dist_max: float = 1.0
 
 TH = Thresholds()
 
@@ -277,17 +280,19 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
 
     # --- BACKWARD 検出（後傾姿勢） ---
     backward_cond = False
-    if has(PL.LEFT_SHOULDER, PL.LEFT_HIP, PL.RIGHT_SHOULDER, PL.RIGHT_HIP):
-        l_sh, l_hip = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_HIP]
-        r_sh, r_hip = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_HIP]
+    if has(PL.LEFT_SHOULDER, PL.RIGHT_SHOULDER, PL.LEFT_ANKLE, PL.RIGHT_ANKLE):
+        l_sh, r_sh = landmarks[PL.LEFT_SHOULDER], landmarks[PL.RIGHT_SHOULDER]
+        l_an, r_an = landmarks[PL.LEFT_ANKLE], landmarks[PL.RIGHT_ANKLE]
 
-        # 両肩と両腰の平均座標を計算
+        # 両肩と両足首の平均Z座標を計算
         avg_sh_z = (l_sh.z + r_sh.z) / 2
-        avg_hip_z = (l_hip.z + r_hip.z) / 2
+        avg_an_z = (l_an.z + r_an.z) / 2
 
-        # 平均座標を使って、上半身全体が後ろに傾いているか判定
-        backward_cond = (avg_sh_z - avg_hip_z) >= TH.backward_lean_z_diff_min
+        # 肩が足首より後ろにあるかで判定
+        lean_value = avg_sh_z - avg_an_z
+        print(f"Backward Lean (Shoulder-Ankle Z): {lean_value:.2f} / Req: {TH.backward_lean_shoulders_ankles_z_diff}")
 
+        backward_cond = lean_value >= TH.backward_lean_shoulders_ankles_z_diff
       # --- CROUCH 検出（左右どちらか） ---
     crouch_left = False
     crouch_right = False
