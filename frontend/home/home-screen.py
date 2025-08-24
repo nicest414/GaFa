@@ -3,6 +3,7 @@ from tkinter import font as tkfont
 from PIL import Image, ImageTk
 import pygame
 import os
+import webbrowser
 
 # pygameを初期化
 pygame.mixer.init()
@@ -13,12 +14,15 @@ script_dir = os.path.dirname(__file__)
 # 音楽ファイルの絶対パスを構築
 music_file_path = os.path.join(script_dir, "gafa_home_bgm.mp3")
 
-
-# ウィンドウを作成
+# メインウィンドウの作成（例）
 root = tk.Tk()
-root.title("ゲーム画面のモックアップ")
-root.geometry("800x600")
-root.configure(bg="#f0f0f0")
+root.title("URLを開くボタン")
+main_frame = tk.Frame(root)
+main_frame.pack()
+
+# ウィンドウをフルスクリーンに設定
+root.attributes('-fullscreen', True)
+
 
 # 画面全体を囲むメインフレーム
 main_frame = tk.Frame(root, bg="white", bd=5, relief="solid")
@@ -35,20 +39,15 @@ content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
 # --- 左右のボックスと中央のキャラクターの配置 ---
 # `side`を使って横に並べる
-left_box = tk.Frame(content_frame, bg="white", bd=3, relief="solid", width=180, height=330)
-left_box.pack(side="left", padx=10, pady=10, fill="both", expand=True)
-left_box.pack_propagate(False) # 中身に合わせてサイズが変わるのを防ぐ
 
-
-
-# 中央のキャラクター
+#左のキャラ
 try:
     # 1. 画像ファイルのパスを指定します
-    image_path = "fighting-game-pose/img/gafa(wizard).png"
+    image_path = "fighting-game-pose/img/gafa.robo.png"
 
     # 2. PillowのImage.open()で画像を開きます
     pil_image = Image.open(image_path)
-    pil_image = pil_image.resize((270, 380))
+    pil_image = pil_image.resize((290, 400))
 
     # 3. Pillowの画像をTkinterが扱えるPhotoImageに変換します
     tk_image = ImageTk.PhotoImage(pil_image)
@@ -68,9 +67,61 @@ except FileNotFoundError:
     center_char_label = tk.Label(content_frame, text="人", bg="white", font=("Arial", 40, "bold"))
     center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
 
-right_box = tk.Frame(content_frame, bg="white", bd=3, relief="solid", width=180, height=330)
-right_box.pack(side="left", padx=10, pady=10, fill="both", expand=True )
-right_box.pack_propagate(False)
+
+# 中央のキャラクター
+try:
+    # 1. 画像ファイルのパスを指定します
+    image_path = "fighting-game-pose/img/gafa(wizard).png"
+
+    # 2. PillowのImage.open()で画像を開きます
+    pil_image = Image.open(image_path)
+    pil_image = pil_image.resize((290, 400))
+
+    # 3. Pillowの画像をTkinterが扱えるPhotoImageに変換します
+    tk_image = ImageTk.PhotoImage(pil_image)
+
+    # 4. Labelにimage引数を使って、変換した画像を渡します
+    center_char_label = tk.Label(content_frame, image=tk_image, bg="white")
+
+    # 5. ⚠️ 重要: 画像の参照を保持します
+    # これがないと、画像が画面から消えてしまう可能性があります
+    center_char_label.image = tk_image
+
+    center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+except FileNotFoundError:
+    # 画像ファイルが見つからない場合に備えて、エラー処理を行います
+    print(f"エラー: 画像ファイルが見つかりません: {image_path}")
+    # 代わりにテキストを表示するフォールバック処理
+    center_char_label = tk.Label(content_frame, text="人", bg="white", font=("Arial", 40, "bold"))
+    center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+
+# 右のキャラ
+try:
+    # 1. 画像ファイルのパスを指定します
+    image_path = "fighting-game-pose/img/gafa.dora.png"
+
+    # 2. PillowのImage.open()で画像を開きます
+    pil_image = Image.open(image_path)
+    pil_image = pil_image.resize((290, 400))
+
+    # 3. Pillowの画像をTkinterが扱えるPhotoImageに変換します
+    tk_image = ImageTk.PhotoImage(pil_image)
+
+    # 4. Labelにimage引数を使って、変換した画像を渡します
+    center_char_label = tk.Label(content_frame, image=tk_image, bg="white")
+
+    # 5. ⚠️ 重要: 画像の参照を保持します
+    # これがないと、画像が画面から消えてしまう可能性があります
+    center_char_label.image = tk_image
+
+    center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+except FileNotFoundError:
+    # 画像ファイルが見つからない場合に備えて、エラー処理を行います
+    print(f"エラー: 画像ファイルが見つかりません: {image_path}")
+    # 代わりにテキストを表示するフォールバック処理
+    center_char_label = tk.Label(content_frame, text="人", bg="white", font=("Arial", 40, "bold"))
+    center_char_label.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+
 
 
 # --- 下部のボタン ---
@@ -79,6 +130,9 @@ bottom_bar.pack(fill="x")
 
 def battle_start():
     print("BATTLE START ボタンが押されました！")
+    # URLはhttp://192.168.26.110:5000に設定
+    url = "http://192.168.26.110:5000"
+    webbrowser.open(url)
 
 battle_button = tk.Button(bottom_bar, text="BATTLE START", command=battle_start,
                           bg="#c00000", fg="white", font=("Arial", 16, "bold"),
