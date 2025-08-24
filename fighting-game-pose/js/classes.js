@@ -154,22 +154,22 @@ class Fighter extends Sprite {
     switch (this.attackType) {
       case 'crouch_Punch':
         this.attackBox.offset = { x: 0, y: 150 }   // しゃがみパンチ用
-        this.attackBox.width = 50
+        this.attackBox.width = 70
         this.attackBox.height = 40
         break
       case 'crouch_Kick':
         this.attackBox.offset = { x: 30, y: 150 }  // しゃがみキック用
-        this.attackBox.width = 50
+        this.attackBox.width = 70
         this.attackBox.height = 30
         break
       case 'punch':
         this.attackBox.offset = { x: 0, y: 50 }   // 通常パンチ用
-        this.attackBox.width = 50
+        this.attackBox.width = 70
         this.attackBox.height = 50
         break
       case 'kick':
         this.attackBox.offset = { x: 30, y: 80 }   // 通常キック用
-        this.attackBox.width = 50
+        this.attackBox.width = 70
         this.attackBox.height = 40
         break
       default:
