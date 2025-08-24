@@ -325,6 +325,7 @@ let player1CurrentState = 'stand';
 let player2CurrentState = 'stand';
 
 decreaseTimer()
+let frameCount = 0 // ← これを追加
 
 function animate() {
   window.requestAnimationFrame(animate)
@@ -372,9 +373,6 @@ function animate() {
   } else if (player1Input.guard) {
     player.guard()
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.crouch) {
-    player.crouch()
-    newPlayer1State = player1Input.animationName;
   } else if (player1Input.kick && !player1Input.crouch) {
     player.attack('kick');
     newPlayer1State = player1Input.animationName;
@@ -385,7 +383,11 @@ function animate() {
     player.attack('crouch_Kick');
     newPlayer1State = player1Input.animationName;
   } else if (player1Input.attack && player1Input.crouch) {  // ← しゃがみパンチの独立判定
+    console.log(`[フレーム: ${frameCount}] 1. 入力検知: しゃがみパンチ`);
     player.attack('crouch_Punch');
+    newPlayer1State = player1Input.animationName;
+  } else if (player1Input.crouch) {
+    player.crouch()
     newPlayer1State = player1Input.animationName;
   } else if (player1Input.left && player1LeftEdge > gosa) { // ← 修正：左端チェックを追加
     player.velocity.x = -5
@@ -494,8 +496,8 @@ function animate() {
         height: enemy.height
       }
     }) &&
-    player.isAttacking &&
-    player.framesCurrent === 4
+    player.isAttacking
+    && player.framesCurrent === 4
   ) {
     enemy.takeHit()
     player.isAttacking = false
