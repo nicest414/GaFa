@@ -150,9 +150,46 @@ class Fighter extends Sprite {
     this.draw()
     if (!this.dead) this.animateFrames()
 
+    // 攻撃種別ごとにattackBoxの位置・サイズを切り替え
+    switch (this.attackType) {
+      case 'crouch_Punch':
+        this.attackBox.offset = { x: 50, y: 180 }   // しゃがみパンチ用
+        this.attackBox.width = 50
+        this.attackBox.height = 40
+        break
+      case 'crouch_Kick':
+        this.attackBox.offset = { x: 120, y: 210 }  // しゃがみキック用
+        this.attackBox.width = 50
+        this.attackBox.height = 30
+        break
+      case 'punch':
+        this.attackBox.offset = { x: 0, y: 50 }   // 通常パンチ用
+        this.attackBox.width = 50
+        this.attackBox.height = 50
+        break
+      case 'kick':
+        this.attackBox.offset = { x: 30, y: 80 }   // 通常キック用
+        this.attackBox.width = 50
+        this.attackBox.height = 40
+        break
+      default:
+        // 攻撃していないときはデフォルト値
+        this.attackBox.offset = { x: 100, y: 50 }
+        this.attackBox.width = 160
+        this.attackBox.height = 50
+        break
+    }
+    if (this.color === 'blue') {
+      this.attackBox.position.x = this.position.x - this.attackBox.offset.x - this.attackBox.width + this.width;
+      this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
+    } else {
+      this.attackBox.position.x = this.position.x + this.attackBox.offset.x;
+      this.attackBox.position.y = this.position.y + this.attackBox.offset.y;
+    }
+
     // attack boxes
-    this.attackBox.position.x = this.position.x
-    this.attackBox.position.y = this.position.y
+    // this.attackBox.position.x = this.position.x
+    // this.attackBox.position.y = this.position.y
 
     // しゃがみ時の当たり判定調整
     if (this.isCrouching) {
@@ -335,7 +372,6 @@ class Fighter extends Sprite {
         return;
       }
     }
-
     this.isAttacking = true;
     this.attackType = attackType;
   }

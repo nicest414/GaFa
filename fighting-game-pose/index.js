@@ -375,17 +375,17 @@ function animate() {
   } else if (player1Input.crouch) {
     player.crouch()
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.kick) {
+  } else if (player1Input.kick && !player1Input.crouch) {
     player.attack('kick');
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.attack) {
+  } else if (player1Input.attack && !player1Input.crouch) {
     player.attack('punch');
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.crouchKick) {  // ← しゃがみキックの独立判定
-    player.attack('crouch_kick');
+  } else if (player1Input.kick && player1Input.crouch) {  // ← しゃがみキックの独立判定
+    player.attack('crouch_Kick');
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.crouchPunch) {  // ← しゃがみパンチの独立判定
-    player.attack('crouch_punch');
+  } else if (player1Input.attack && player1Input.crouch) {  // ← しゃがみパンチの独立判定
+    player.attack('crouch_Punch');
     newPlayer1State = player1Input.animationName;
   } else if (player1Input.left && player1LeftEdge > gosa) { // ← 修正：左端チェックを追加
     player.velocity.x = -5
@@ -437,10 +437,10 @@ function animate() {
     enemy.attack('punch');
     newPlayer2State = player2Input.animationName;
   } else if (player2Input.crouchKick) {  // ← しゃがみキックの独立判定
-    enemy.attack('crouch_kick');
+    enemy.attack('crouch_Kick');
     newPlayer2State = player2Input.animationName;
   } else if (player2Input.crouchPunch) {  // ← しゃがみパンチの独立判定
-    enemy.attack('crouch_punch');
+    enemy.attack('crouch_Punch');
     newPlayer2State = player2Input.animationName;
   } else if (player2Input.left && player2LeftEdge > gosa) { // ← 修正：左端チェックを追加
     enemy.velocity.x = -5
