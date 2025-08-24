@@ -153,12 +153,12 @@ class Fighter extends Sprite {
     // 攻撃種別ごとにattackBoxの位置・サイズを切り替え
     switch (this.attackType) {
       case 'crouch_Punch':
-        this.attackBox.offset = { x: 50, y: 180 }   // しゃがみパンチ用
+        this.attackBox.offset = { x: 0, y: 150 }   // しゃがみパンチ用
         this.attackBox.width = 50
         this.attackBox.height = 40
         break
       case 'crouch_Kick':
-        this.attackBox.offset = { x: 120, y: 210 }  // しゃがみキック用
+        this.attackBox.offset = { x: 30, y: 150 }  // しゃがみキック用
         this.attackBox.width = 50
         this.attackBox.height = 30
         break
