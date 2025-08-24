@@ -218,10 +218,14 @@ window.addEventListener('keydown', (event) => {
     case 'F4': poseController.setPlayer2Pose('GUARD'); break;
     case 'F5': poseController.setPlayer2Pose('CROUCH'); break;
     case 'F6': poseController.setPlayer2Pose('FORWARD'); break;
-    case 'F7': poseController.setPlayer2Pose('BACKWARD'); break;
-    case 'F8': poseController.setPlayer2Pose('CROUCH_PUNCH'); break;
+    case 'F7': poseController.setPlayer2Pose('BACKWARD'); break;    case 'F8': poseController.setPlayer2Pose('CROUCH_PUNCH'); break;
     case 'F9': poseController.setPlayer2Pose('CROUCH_KICK'); break;
     case 'F10': poseController.setPlayer2Pose('CROUCH_GUARD'); break;
+  }
+
+  // 当たり判定表示切り替え（Yキー）
+  if (event.key.toLowerCase() === 'y') {
+    Fighter.toggleHitboxDisplay();
   }
 });
 

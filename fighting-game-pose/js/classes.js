@@ -98,12 +98,11 @@ class Fighter extends Sprite {
       scale,
       framesMax,
       offset
-    })
-
+    })    
     this.velocity = velocity
-    this.width = 50
-    this.height = 150
-    this.originalHeight = 150
+    this.width = 120        // 実際のキャラクター幅に近づける（150→120で少し余裕を持たせる）
+    this.height = 220       // 実際のキャラクター高さに近づける（256→220で少し余裕を持たせる）
+    this.originalHeight = 220
     this.lastKey
     this.attackBox = {
       position: {
@@ -113,15 +112,18 @@ class Fighter extends Sprite {
       offset: attackBox.offset,
       width: attackBox.width,
       height: attackBox.height
-    }
+    }    
     this.color = color
     this.isAttacking = false
     this.isGuarding = false
     this.isCrouching = false
     this.health = 100
+    
+    // 当たり判定表示用フラグ（全キャラクター共通）
+    Fighter.showHitboxes = Fighter.showHitboxes || false
     this.framesCurrent = 0
     this.framesElapsed = 0
-    this.framesHold = 8
+    this.framesHold = 4
     this.sprites = sprites
     this.dead = false
 
@@ -139,7 +141,6 @@ class Fighter extends Sprite {
       sprite.image.src = sprite.imageSrc
     }
   }
-
   update() {
     this.draw()
     if (!this.dead) this.animateFrames()
@@ -155,14 +156,63 @@ class Fighter extends Sprite {
       this.height = this.originalHeight
     }
 
-    this.position.x += this.velocity.x
-    this.position.y += this.velocity.y
-
-    // gravity function
+    // 当たり判定の表示（デバッグ用）
+    if (Fighter.showHitboxes) {
+      this.drawHitboxes()
+    }this.position.x += this.velocity.x
+    this.position.y += this.velocity.y    // 画面左右の境界チェック
+    const leftBoundary = -20  // 少し左に出られるように
+    const rightBoundary = canvas.width - 30  // 右端ももう少し外まで
+    
+    if (this.position.x < leftBoundary) {
+      this.position.x = leftBoundary
+    } else if (this.position.x > rightBoundary) {
+      this.position.x = rightBoundary
+    }    // gravity function
     if (this.position.y + this.height + this.velocity.y >= canvas.height - 96) {
       this.velocity.y = 0
       this.position.y = 330
     } else this.velocity.y += gravity
+  }
+
+  // 当たり判定表示メソッド
+  drawHitboxes() {
+    c.save()
+    
+    // キャラクター本体の当たり判定（透明な青色）
+    c.fillStyle = 'rgba(0, 0, 255, 0.3)'  // 透明な青色
+    c.strokeStyle = 'rgba(0, 0, 255, 0.8)'  // 境界線用の青色
+    c.lineWidth = 2
+    
+    // キャラクターの当たり判定を描画
+    c.fillRect(this.position.x, this.position.y, this.width, this.height)
+    c.strokeRect(this.position.x, this.position.y, this.width, this.height)
+    
+    // 攻撃判定も表示（攻撃中のみ）
+    if (this.isAttacking && this.attackBox.width && this.attackBox.height) {
+      c.fillStyle = 'rgba(255, 0, 0, 0.3)'  // 透明な赤色
+      c.strokeStyle = 'rgba(255, 0, 0, 0.8)'  // 境界線用の赤色
+      
+      c.fillRect(
+        this.attackBox.position.x, 
+        this.attackBox.position.y, 
+        this.attackBox.width, 
+        this.attackBox.height
+      )
+      c.strokeRect(
+        this.attackBox.position.x, 
+        this.attackBox.position.y, 
+        this.attackBox.width, 
+        this.attackBox.height
+      )
+    }
+      c.restore()
+  }
+
+  // 当たり判定表示の切り替え（静的メソッド）
+  static toggleHitboxDisplay() {
+    Fighter.showHitboxes = !Fighter.showHitboxes
+    console.log(`当たり判定表示: ${Fighter.showHitboxes ? 'ON' : 'OFF'}`)
   }
 
   animateFrames() {
