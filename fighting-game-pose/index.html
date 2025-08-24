@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
       box-sizing: border-box;
       font-family: 'Press Start 2P', cursive;
     }
+
     body {
       background-color: black;
       margin: 0;
@@ -19,11 +21,15 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      overflow: hidden;
+      /* はみ出した部分を隠す（任意）*/
     }
+
     .pose-debug {
       position: absolute;
       top: 10px;
-      right: 10px; /* Changed from right to left to avoid overlap */
+      right: 10px;
+      /* Changed from right to left to avoid overlap */
       background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 10px;
@@ -31,12 +37,23 @@
       font-size: 12px;
       z-index: 1000;
     }
+
+    /* ▼▼▼ このブロックを新しく追加 ▼▼▼ */
+    #game-wrapper {
+      /* 合計幅をflex-shrinkで固定する */
+      flex-shrink: 0;
+    }
+
+    #game-canvas {
+      width: 1024px;
+      height: 576px;
+    }
   </style>
 </head>
 
 <body>
   <!-- Main Flex Container to hold game and camera side-by-side -->
-  <div style="display: flex; align-items: center; gap: 20px;">
+  <div id="game-wrapper" style="display: flex; align-items: center; gap: 20px;">
 
     <!-- Original Game Container (LEFT SIDE) -->
     <div style="position: relative; display: inline-block">
@@ -122,7 +139,7 @@
         ">
         Tie
       </div>
-      <canvas></canvas>
+      <canvas id="game-canvas"></canvas>
     </div>
 
     <!-- ▼▼▼ NEW: Camera Feed Container (RIGHT SIDE) ▼▼▼ -->
@@ -152,4 +169,5 @@
   <script src="js/pose-controller.js"></script>
   <script src="index.js"></script>
 </body>
+
 </html>

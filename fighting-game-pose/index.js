@@ -17,8 +17,8 @@ const cameraFeed = document.getElementById('cameraFeed');
 const socket = new WebSocket('ws://localhost:5000/ws');
 
 // 3. 接続が確立したときの処理
-socket.onopen = function() {
-    console.log("WebSocket接続成功！ 👾");
+socket.onopen = function () {
+  console.log("WebSocket接続成功！ 👾");
 };
 
 // 4. サーバーからメッセージを受信したときの処理
@@ -30,7 +30,8 @@ socket.onmessage = function (event) {
     if (data.pose) {
       // デバッグ用の表示を更新
       document.getElementById('player1-pose').textContent = data.pose;
-      
+      poseController.setPlayer1Pose(data.pose);
+
       // poseControllerオブジェクトに現在のポーズを伝える
       // ※pose-controller.js側で受信したポーズ名を処理する想定です
       // 例えば、poseControllerに以下のような関数を作って連携します。
@@ -44,7 +45,7 @@ socket.onmessage = function (event) {
 
     // エラーを受信した場合
     if (data.error) {
-        console.error("サーバーエラー:", data.error);
+      console.error("サーバーエラー:", data.error);
     }
 
   } catch (error) {
@@ -53,8 +54,8 @@ socket.onmessage = function (event) {
 };
 
 // 5. 接続が切断したときの処理
-socket.onclose = function() {
-    console.log("WebSocket切断。");
+socket.onclose = function () {
+  console.log("WebSocket切断。");
 };
 
 const background = new Sprite({
@@ -148,9 +149,9 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Death.png',
       framesMax: 13
     },
-    
+
     // === ポーズ対応アニメーション（現在は既存アニメーションを使用） ===
-    
+
     // 攻撃系
     punch: {
       imageSrc: './img/samuraiMack/Punch.png',  // 専用アニメーション追加時に変更
@@ -168,7 +169,7 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Crouch_Kick.png',  // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 防御系
     guard: {
       imageSrc: './img/samuraiMack/Guard.png',     // 専用アニメーション追加時に変更
@@ -178,7 +179,7 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Crouch_Guard.png',     // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 移動系
     forward: {
       imageSrc: './img/samuraiMack/Forward.png',      // samuraiMackフォルダに修正
@@ -188,7 +189,7 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Backward.png',      // samuraiMackフォルダに修正
       framesMax: 8
     },
-    
+
     // 姿勢系
     crouch: {
       imageSrc: './img/samuraiMack/Crouch.png',     // 専用アニメーション追加時に変更
@@ -256,9 +257,9 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Death.png',
       framesMax: 13
     },
-    
+
     // === ポーズ対応アニメーション（現在は既存アニメーションを使用） ===
-    
+
     // 攻撃系
     punch: {
       imageSrc: './img/kenji/Punch.png',       // 専用アニメーション追加時に変更
@@ -276,7 +277,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Crouch_Kick.png',       // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 防御系
     guard: {
       imageSrc: './img/kenji/Guard.png',          // 専用アニメーション追加時に変更
@@ -286,7 +287,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Crouch_Guard.png',          // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 移動系
     forward: {
       imageSrc: './img/kenji/Forward.png',           // 専用アニメーション追加時に変更
@@ -296,7 +297,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Backward.png',           // 専用アニメーション追加時に変更
       framesMax: 8
     },
-    
+
     // 姿勢系
     crouch: {
       imageSrc: './img/kenji/Crouch.png',          // 専用アニメーション追加時に変更
@@ -337,14 +338,14 @@ function animate() {
   // 表示
   c.fillStyle = 'rgba(255, 255, 255, 0.15)'
   c.fillRect(0, 0, canvas.width, canvas.height)
-  
+
   // ポーズコントローラーの更新
   poseController.update()
-  
+
   // ポーズからの入力を取得
   const player1Input = poseController.getPlayer1Input()
   const player2Input = poseController.getPlayer2Input()
-  
+
   player.update()
   enemy.update()
 
@@ -354,11 +355,15 @@ function animate() {
   // プレイヤー1の状態リセット
   player.isGuarding = false
   player.isCrouching = false
-  
+
   // プレイヤー2の状態リセット
   enemy.isGuarding = false
   enemy.isCrouching = false  // プレイヤー1のポーズ制御
   let newPlayer1State = player1Input.animationName || 'stand';
+
+  const player1LeftEdge = player.position.x + player.offset.x;
+  const player1RightEdge = player.position.x + player.offset.x + player.width;
+  const gosa = 420;
 
   // 攻撃中は他の動作を制限
   if (player.isAttacking) {
@@ -376,10 +381,10 @@ function animate() {
   } else if (player1Input.attack) {
     player.attack('punch');
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.left) {
+  } else if (player1Input.left && player1LeftEdge > gosa) { // ← 修正：左端チェックを追加
     player.velocity.x = -5
     newPlayer1State = player1Input.animationName;
-  } else if (player1Input.right) {
+  } else if (player1Input.right && player1RightEdge < canvas.width + gosa) { // ← 修正：右端チェックを追加
     player.velocity.x = 5
     newPlayer1State = player1Input.animationName;
   }
@@ -405,9 +410,11 @@ function animate() {
       player.switchSprite('fall')
       player1CurrentState = 'fall';
     }
-  }  // プレイヤー2のポーズ制御  
+  }  // プレイヤー2のポーズ制御   
   let newPlayer2State = player2Input.animationName || 'stand';
 
+  const player2LeftEdge = enemy.position.x + enemy.offset.x;
+  const player2RightEdge = enemy.position.x + enemy.offset.x + enemy.width;
   if (enemy.isAttacking) {
     // 現在のアニメーション名をそのまま使用
     newPlayer2State = player2Input.animationName;
@@ -423,10 +430,10 @@ function animate() {
   } else if (player2Input.attack) {
     enemy.attack('punch');
     newPlayer2State = player2Input.animationName;
-  } else if (player2Input.left) {
+  } else if (player2Input.left && player2LeftEdge > gosa) { // ← 修正：左端チェックを追加
     enemy.velocity.x = -5
     newPlayer2State = player2Input.animationName;
-  } else if (player2Input.right) {
+  } else if (player2Input.right && player2RightEdge < canvas.width + gosa) { // ← 修正：右端チェックを追加
     enemy.velocity.x = 5
     newPlayer2State = player2Input.animationName;
   }
@@ -462,7 +469,8 @@ function animate() {
     }) &&
     player.isAttacking &&
     player.framesCurrent === 4
-  ) {    enemy.takeHit()
+  ) {
+    enemy.takeHit()
     player.isAttacking = false
 
     gsap.to('#enemyHealth', {
@@ -470,11 +478,10 @@ function animate() {
     })
   }
 
-  // この部分は削除（updateメソッドで処理）
   // if player misses
-  // if (player.isAttacking && player.framesCurrent === 4) {
-  //   player.isAttacking = false
-  // }
+  if (player.isAttacking && player.framesCurrent === 4) {
+    player.isAttacking = false
+  }
 
   // this is where our player gets hit
   if (
@@ -503,6 +510,7 @@ function animate() {
     determineWinner({ player, enemy, timerId })
   }
 }
+
 
 animate()
 
