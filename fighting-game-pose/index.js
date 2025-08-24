@@ -8,6 +8,55 @@ c.fillRect(0, 0, canvas.width, canvas.height)
 
 const gravity = 0.7
 
+// ▼▼▼【ここから追加】WebSocket関連のコード ▼▼▼
+
+// 1. HTMLのimg要素を取得
+const cameraFeed = document.getElementById('cameraFeed');
+
+// 2. WebSocketサーバーに接続
+const socket = new WebSocket('ws://localhost:5000/ws');
+
+// 3. 接続が確立したときの処理
+socket.onopen = function() {
+    console.log("WebSocket接続成功！ 👾");
+};
+
+// 4. サーバーからメッセージを受信したときの処理
+socket.onmessage = function (event) {
+  try {
+    const data = JSON.parse(event.data);
+
+    // ポーズ名を受信した場合
+    if (data.pose) {
+      // デバッグ用の表示を更新
+      document.getElementById('player1-pose').textContent = data.pose;
+      
+      // poseControllerオブジェクトに現在のポーズを伝える
+      // ※pose-controller.js側で受信したポーズ名を処理する想定です
+      // 例えば、poseControllerに以下のような関数を作って連携します。
+      // poseController.setCurrentPose('player1', data.pose);
+    }
+
+    // カメラ映像を受信した場合
+    if (data.image) {
+      cameraFeed.src = 'data:image/jpeg;base64,' + data.image;
+    }
+
+    // エラーを受信した場合
+    if (data.error) {
+        console.error("サーバーエラー:", data.error);
+    }
+
+  } catch (error) {
+    console.error("サーバーからのメッセージ処理中にエラー:", error);
+  }
+};
+
+// 5. 接続が切断したときの処理
+socket.onclose = function() {
+    console.log("WebSocket切断。");
+};
+
 const background = new Sprite({
   position: {
     x: 0,
