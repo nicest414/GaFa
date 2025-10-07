@@ -320,7 +320,11 @@ console.log(player)
 let player1CurrentState = 'stand';
 let player2CurrentState = 'stand';
 
-decreaseTimer()
+// ゲーム開始フラグ
+let gameStarted = false;
+let countdownNumber = 3;
+let countdownActive = false;
+
 let frameCount = 0 // ← これを追加
 
 function animate() {
@@ -336,6 +340,49 @@ function animate() {
   c.fillStyle = 'rgba(255, 255, 255, 0.15)'
   c.fillRect(0, 0, canvas.width, canvas.height)
 
+  player.update()
+  enemy.update()
+
+  // カウントダウン表示
+  if (countdownActive) {
+    c.save()
+    c.fillStyle = 'white'
+    c.font = '120px "Press Start 2P"'
+    c.textAlign = 'center'
+    c.textBaseline = 'middle'
+
+    // テキストの影
+    c.shadowColor = 'rgba(0, 0, 0, 0.8)'
+    c.shadowBlur = 20
+    c.shadowOffsetX = 5
+    c.shadowOffsetY = 5
+
+    if (countdownNumber > 0) {
+      c.fillText(countdownNumber.toString(), canvas.width / 2, canvas.height / 2)
+    } else {
+      c.fillStyle = '#FFD700'
+      c.fillText('FIGHT!', canvas.width / 2, canvas.height / 2)
+    }
+    c.restore()
+    return
+  }
+
+  // ゲームが開始していない場合は入力を受け付けない
+  if (!gameStarted) {
+    c.save()
+    c.fillStyle = 'white'
+    c.font = '40px "Press Start 2P"'
+    c.textAlign = 'center'
+    c.textBaseline = 'middle'
+    c.shadowColor = 'rgba(0, 0, 0, 0.8)'
+    c.shadowBlur = 15
+    c.shadowOffsetX = 3
+    c.shadowOffsetY = 3
+    c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2)
+    c.restore()
+    return
+  }
+
   // ポーズコントローラーの更新
   poseController.update()
 
@@ -349,9 +396,6 @@ function animate() {
   poseController.setPlayer2Pose(npcPose);
   document.getElementById('player2-pose').textContent = `${npcPose} (NPC)`;
   const player2Input = poseController.getPlayer2Input()
-
-  player.update()
-  enemy.update()
 
   player.velocity.x = 0
   enemy.velocity.x = 0
@@ -545,6 +589,32 @@ function animate() {
 
 
 animate()
+
+// カウントダウン関数
+function startCountdown() {
+  countdownActive = true
+  countdownNumber = 3
+
+  const countdownInterval = setInterval(() => {
+    countdownNumber--
+
+    if (countdownNumber < 0) {
+      clearInterval(countdownInterval)
+      setTimeout(() => {
+        countdownActive = false
+        gameStarted = true
+        decreaseTimer() // タイマー開始
+      }, 1000) // "FIGHT!"を1秒間表示
+    }
+  }, 1000) // 1秒ごとにカウントダウン
+}
+
+// Enterキーでゲーム開始
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !gameStarted && !countdownActive) {
+    startCountdown()
+  }
+})
 
 // キーボード入力は保持（テスト用）
 // const keys = {
