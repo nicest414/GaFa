@@ -116,6 +116,7 @@ class PoseController {
         input.left = true;
         input.animationName = 'backward';
         break;
+      
       case 'STAND':
       default:
         input.animationName = 'stand';
@@ -181,6 +182,7 @@ class PoseController {
         input.right = true; // プレイヤー2は左向きなので逆
         input.animationName = 'backward';
         break;
+      
       case 'STAND':
       default:
         input.animationName = 'stand';
@@ -211,17 +213,17 @@ window.addEventListener('keydown', (event) => {
   }
 
   // プレイヤー2のポーズ制御（F1-F10キー）
-  switch (event.key) {
-    case 'F1': poseController.setPlayer2Pose('STAND'); break;
-    case 'F2': poseController.setPlayer2Pose('PUNCH'); break;
-    case 'F3': poseController.setPlayer2Pose('KICK'); break;
-    case 'F4': poseController.setPlayer2Pose('GUARD'); break;
-    case 'F5': poseController.setPlayer2Pose('CROUCH'); break;
-    case 'F6': poseController.setPlayer2Pose('FORWARD'); break;
-    case 'F7': poseController.setPlayer2Pose('BACKWARD'); break;    case 'F8': poseController.setPlayer2Pose('CROUCH_PUNCH'); break;
-    case 'F9': poseController.setPlayer2Pose('CROUCH_KICK'); break;
-    case 'F10': poseController.setPlayer2Pose('CROUCH_GUARD'); break;
-  }
+  // switch (event.key) {
+  //   case 'F1': poseController.setPlayer2Pose('STAND'); break;
+  //   case 'F2': poseController.setPlayer2Pose('PUNCH'); break;
+  //   case 'F3': poseController.setPlayer2Pose('KICK'); break;
+  //   case 'F4': poseController.setPlayer2Pose('GUARD'); break;
+  //   case 'F5': poseController.setPlayer2Pose('CROUCH'); break;
+  //   case 'F6': poseController.setPlayer2Pose('FORWARD'); break;
+  //   case 'F7': poseController.setPlayer2Pose('BACKWARD'); break;    case 'F8': poseController.setPlayer2Pose('CROUCH_PUNCH'); break;
+  //   case 'F9': poseController.setPlayer2Pose('CROUCH_KICK'); break;
+  //   case 'F10': poseController.setPlayer2Pose('CROUCH_GUARD'); break;
+  // }
 
   // 当たり判定表示切り替え（Yキー）
   if (event.key.toLowerCase() === 'y') {

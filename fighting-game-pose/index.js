@@ -104,8 +104,8 @@ const wood = new Sprite({
 
 const player = new Fighter({
   position: {
-    x: 400, // ← enemyと同じx座標
-    y: 100  // ← enemyと同じy座標
+    x: 200,
+    y: 100
   },
   velocity: {
     x: 0,
@@ -175,7 +175,7 @@ const player = new Fighter({
       imageSrc: './img/samuraiMack/Guard.png',     // 専用アニメーション追加時に変更
       framesMax: 6
     },
-    crouchGuard: {
+    crouch_guard: {
       imageSrc: './img/samuraiMack/Crouch_Guard.png',     // 専用アニメーション追加時に変更
       framesMax: 8
     },
@@ -212,7 +212,7 @@ const player = new Fighter({
 
 const enemy = new Fighter({
   position: {
-    x: 400,
+    x: 700,
     y: 100
   },
   velocity: {
@@ -220,15 +220,11 @@ const enemy = new Fighter({
     y: 0
   },
   color: 'blue',
-  offset: {
-    x: -50,
-    y: 0
-  },
   imageSrc: './img/kenji/Stand.png',
   framesMax: 10,
   scale: 1,
   offset: {
-    x: -256,
+    x: 256,
     y: 65
   },
   sprites: {
@@ -269,11 +265,11 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Kick.png',       // 専用アニメーション追加時に変更
       framesMax: 9
     },
-    crouchPunch: {
+    crouch_Punch: {
       imageSrc: './img/kenji/Crouch_Punch.png',       // 専用アニメーション追加時に変更
       framesMax: 10
     },
-    crouchKick: {
+    crouch_Kick: {
       imageSrc: './img/kenji/Crouch_Kick.png',       // 専用アニメーション追加時に変更
       framesMax: 8
     },
@@ -283,7 +279,7 @@ const enemy = new Fighter({
       imageSrc: './img/kenji/Guard.png',          // 専用アニメーション追加時に変更
       framesMax: 6
     },
-    crouchGuard: {
+    crouch_guard: {
       imageSrc: './img/kenji/Crouch_Guard.png',          // 専用アニメーション追加時に変更
       framesMax: 8
     },
@@ -343,8 +339,15 @@ function animate() {
   // ポーズコントローラーの更新
   poseController.update()
 
+  // NPCコントローラーの更新
+  npcController.update(player, enemy)
+
   // ポーズからの入力を取得
   const player1Input = poseController.getPlayer1Input()
+  // ▼▼▼ Player2（NPC）のポーズを設定 ▼▼▼
+  const npcPose = npcController.getCurrentPose();
+  poseController.setPlayer2Pose(npcPose);
+  document.getElementById('player2-pose').textContent = `${npcPose} (NPC)`;
   const player2Input = poseController.getPlayer2Input()
 
   player.update()
@@ -429,25 +432,25 @@ function animate() {
   } else if (player2Input.guard) {
     enemy.guard()
     newPlayer2State = player2Input.animationName;
+  } else if (player2Input.kick && player2Input.crouch) {  // しゃがみキック
+    enemy.attack('crouch_Kick');
+    newPlayer2State = player2Input.animationName;
+  } else if (player2Input.attack && player2Input.crouch) {  // しゃがみパンチ
+    enemy.attack('crouch_Punch');
+    newPlayer2State = player2Input.animationName;
+  } else if (player2Input.kick && !player2Input.crouch) {
+    enemy.attack('kick');
+    newPlayer2State = player2Input.animationName;
+  } else if (player2Input.attack && !player2Input.crouch) {
+    enemy.attack('punch');
+    newPlayer2State = player2Input.animationName;
   } else if (player2Input.crouch) {
     enemy.crouch()
     newPlayer2State = player2Input.animationName;
-  } else if (player2Input.kick) {
-    enemy.attack('kick');
-    newPlayer2State = player2Input.animationName;
-  } else if (player2Input.attack) {
-    enemy.attack('punch');
-    newPlayer2State = player2Input.animationName;
-  } else if (player2Input.crouchKick) {  // ← しゃがみキックの独立判定
-    enemy.attack('crouch_Kick');
-    newPlayer2State = player2Input.animationName;
-  } else if (player2Input.crouchPunch) {  // ← しゃがみパンチの独立判定
-    enemy.attack('crouch_Punch');
-    newPlayer2State = player2Input.animationName;
-  } else if (player2Input.left && player2LeftEdge > gosa) { // ← 修正：左端チェックを追加
+  } else if (player2Input.left && player2LeftEdge > gosa) {
     enemy.velocity.x = -5
     newPlayer2State = player2Input.animationName;
-  } else if (player2Input.right && player2RightEdge < canvas.width + gosa) { // ← 修正：右端チェックを追加
+  } else if (player2Input.right && player2RightEdge < canvas.width + gosa) {
     enemy.velocity.x = 5
     newPlayer2State = player2Input.animationName;
   }
