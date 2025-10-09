@@ -9,13 +9,21 @@ function rectangularCollision({ rectangle1, rectangle2 }) {
 
 function determineWinner({ player, enemy, timerId }) {
   clearTimeout(timerId)
-  document.querySelector('#displayText').style.display = 'flex'
+
+  // グローバル変数にゲーム終了フラグを設定
+  window.gameOver = true
+
+  const displayText = document.querySelector('#displayText')
+  const resultText = document.querySelector('#resultText')
+
+  displayText.style.display = 'flex'
+
   if (player.health === enemy.health) {
-    document.querySelector('#displayText').innerHTML = 'Tie'
+    resultText.innerHTML = 'Tie'
   } else if (player.health > enemy.health) {
-    document.querySelector('#displayText').innerHTML = 'Player 1 Wins'
+    resultText.innerHTML = 'Player 1 Wins'
   } else if (player.health < enemy.health) {
-    document.querySelector('#displayText').innerHTML = 'Player 2 Wins'
+    resultText.innerHTML = 'Player 2 Wins'
   }
 }
 

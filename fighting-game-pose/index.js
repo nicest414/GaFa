@@ -609,10 +609,69 @@ function startCountdown() {
   }, 1000) // 1秒ごとにカウントダウン
 }
 
-// Enterキーでゲーム開始
+// ゲームリセット関数
+function resetGame() {
+  // ゲーム状態をリセット
+  gameStarted = false
+  countdownActive = false
+  countdownNumber = 3
+  window.gameOver = false
+
+  // プレイヤーをリセット
+  player.position.x = 200
+  player.position.y = 100
+  player.velocity.x = 0
+  player.velocity.y = 0
+  player.health = 100
+  player.dead = false
+  player.isAttacking = false
+
+  // エネミーをリセット
+  enemy.position.x = 700
+  enemy.position.y = 100
+  enemy.velocity.x = 0
+  enemy.velocity.y = 0
+  enemy.health = 100
+  enemy.dead = false
+  enemy.isAttacking = false
+
+  // UIをリセット
+  document.querySelector('#playerHealth').style.width = '100%'
+  document.querySelector('#enemyHealth').style.width = '100%'
+  document.querySelector('#displayText').style.display = 'none'
+  document.querySelector('#timer').innerHTML = '60'
+
+  // タイマーをリセット
+  timer = 60
+  if (timerId) clearTimeout(timerId)
+
+  // NPCコントローラーをリセット
+  npcController.currentPose = 'STAND'
+  npcController.actionTimer = 0
+  npcController.thinkTimer = 0
+
+  // ポーズコントローラーをリセット
+  poseController.player1Pose = 'STAND'
+  poseController.player2Pose = 'STAND'
+
+  // プレイヤーの状態をリセット
+  player1CurrentState = 'stand'
+  player2CurrentState = 'stand'
+  player.switchSprite('idle')
+  enemy.switchSprite('idle')
+}
+
+// Enterキーでゲーム開始とリスタート
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' && !gameStarted && !countdownActive) {
-    startCountdown()
+  if (event.key === 'Enter') {
+    if (window.gameOver) {
+      // ゲームオーバー後のリスタート
+      resetGame()
+      startCountdown()
+    } else if (!gameStarted && !countdownActive) {
+      // 初回スタート
+      startCountdown()
+    }
   }
 })
 
