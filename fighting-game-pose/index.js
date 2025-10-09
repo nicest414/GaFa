@@ -367,6 +367,11 @@ function animate() {
     return
   }
 
+  // ゲーム終了時は処理を止める
+  if (window.gameOver) {
+    return
+  }
+
   // ゲームが開始していない場合は入力を受け付けない
   if (!gameStarted) {
     c.save()
@@ -583,7 +588,9 @@ function animate() {
 
   // end game based on health
   if (enemy.health <= 0 || player.health <= 0) {
-    determineWinner({ player, enemy, timerId })
+    if (!window.gameOver) {
+      determineWinner({ player, enemy, timerId })
+    }
   }
 }
 
@@ -640,6 +647,15 @@ function resetGame() {
   document.querySelector('#enemyHealth').style.width = '100%'
   document.querySelector('#displayText').style.display = 'none'
   document.querySelector('#timer').innerHTML = '60'
+
+  // リザルト画面のアニメーションをリセット
+  const gameWrapper = document.querySelector('#game-wrapper')
+  const resultText = document.querySelector('#resultText')
+  const restartText = document.querySelector('#restartText')
+
+  gameWrapper.classList.remove('show-result')
+  resultText.style.transform = 'scale(0)'
+  restartText.style.opacity = '0'
 
   // タイマーをリセット
   timer = 60

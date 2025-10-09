@@ -138,14 +138,38 @@
           display: none;
           flex-direction: column;
           gap: 30px;
+          background: rgba(0, 0, 0, 0);
+          transition: background 0.5s ease-in;
         ">
-        <div id="resultText" style="font-size: 48px;">Tie</div>
-        <div id="restartText" style="font-size: 24px; animation: blink 1.5s infinite;">Press ENTER to Restart</div>
+        <div id="resultText" style="
+          font-size: 48px;
+          text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8);
+          transform: scale(0);
+          transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        ">Tie</div>
+        <div id="restartText" style="
+          font-size: 24px;
+          animation: blink 1.5s infinite;
+          opacity: 0;
+          transition: opacity 0.5s ease-in 1s;
+        ">Press ENTER to Restart</div>
       </div>
       <style>
         @keyframes blink {
           0%, 50% { opacity: 1; }
           51%, 100% { opacity: 0.3; }
+        }
+
+        .show-result #displayText {
+          background: rgba(0, 0, 0, 0.7) !important;
+        }
+
+        .show-result #resultText {
+          transform: scale(1) !important;
+        }
+
+        .show-result #restartText {
+          opacity: 1 !important;
         }
       </style>
       <canvas id="game-canvas"></canvas>
