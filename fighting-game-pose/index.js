@@ -632,6 +632,14 @@ function resetGame() {
   player.health = 100
   player.dead = false
   player.isAttacking = false
+  player.framesCurrent = 0
+  player.framesElapsed = 0
+  player.isGuarding = false
+  player.isCrouching = false
+  player.isGuardHolding = false
+  player.guardExitRequested = false
+  player.currentAction = null
+  player.attackType = null
 
   // エネミーをリセット
   enemy.position.x = 700
@@ -641,6 +649,23 @@ function resetGame() {
   enemy.health = 100
   enemy.dead = false
   enemy.isAttacking = false
+  enemy.framesCurrent = 0
+  enemy.framesElapsed = 0
+  enemy.isGuarding = false
+  enemy.isCrouching = false
+  enemy.isGuardHolding = false
+  enemy.guardExitRequested = false
+  enemy.currentAction = null
+  enemy.attackType = null
+
+  // スプライトを明示的にidleに設定
+  player.image = player.sprites.idle.image
+  player.framesMax = player.sprites.idle.framesMax
+  player.framesCurrent = 0
+
+  enemy.image = enemy.sprites.idle.image
+  enemy.framesMax = enemy.sprites.idle.framesMax
+  enemy.framesCurrent = 0
 
   // UIをリセット
   document.querySelector('#playerHealth').style.width = '100%'
@@ -673,8 +698,6 @@ function resetGame() {
   // プレイヤーの状態をリセット
   player1CurrentState = 'stand'
   player2CurrentState = 'stand'
-  player.switchSprite('idle')
-  enemy.switchSprite('idle')
 }
 
 // Enterキーでゲーム開始とリスタート
