@@ -34,6 +34,12 @@ def pose_websocket(ws):
     print("WebSocket connected!")
 
     cap = cv2.VideoCapture(0) # カメラに合わせてこの数字は変更してください
+     # ▼▼▼ 解像度を上げる（広角効果） ▼▼▼
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)   # 640 → 1280
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)   # 480 → 720
+    
+    # ▼▼▼ FOV（視野角）を広げる（カメラが対応している場合） ▼▼▼
+    cap.set(cv2.CAP_PROP_ZOOM, 100)  # ズームアウト
     if not cap.isOpened():
         print("Error: Camera not found.")
         ws.send(json.dumps({"error": "Camera not found."}))

@@ -320,7 +320,11 @@ console.log(player)
 let player1CurrentState = 'stand';
 let player2CurrentState = 'stand';
 
-decreaseTimer()
+// ゲーム開始フラグ
+let gameStarted = false;
+let countdownNumber = 3;
+let countdownActive = false;
+
 let frameCount = 0 // ← これを追加
 
 function animate() {
@@ -336,6 +340,54 @@ function animate() {
   c.fillStyle = 'rgba(255, 255, 255, 0.15)'
   c.fillRect(0, 0, canvas.width, canvas.height)
 
+  player.update()
+  enemy.update()
+
+  // カウントダウン表示
+  if (countdownActive) {
+    c.save()
+    c.fillStyle = 'white'
+    c.font = '120px "Press Start 2P"'
+    c.textAlign = 'center'
+    c.textBaseline = 'middle'
+
+    // テキストの影
+    c.shadowColor = 'rgba(0, 0, 0, 0.8)'
+    c.shadowBlur = 20
+    c.shadowOffsetX = 5
+    c.shadowOffsetY = 5
+
+    if (countdownNumber > 0) {
+      c.fillText(countdownNumber.toString(), canvas.width / 2, canvas.height / 2)
+    } else {
+      c.fillStyle = '#FFD700'
+      c.fillText('FIGHT!', canvas.width / 2, canvas.height / 2)
+    }
+    c.restore()
+    return
+  }
+
+  // ゲーム終了時は処理を止める
+  if (window.gameOver) {
+    return
+  }
+
+  // ゲームが開始していない場合は入力を受け付けない
+  if (!gameStarted) {
+    c.save()
+    c.fillStyle = 'white'
+    c.font = '40px "Press Start 2P"'
+    c.textAlign = 'center'
+    c.textBaseline = 'middle'
+    c.shadowColor = 'rgba(0, 0, 0, 0.8)'
+    c.shadowBlur = 15
+    c.shadowOffsetX = 3
+    c.shadowOffsetY = 3
+    c.fillText('Press ENTER to Start', canvas.width / 2, canvas.height / 2)
+    c.restore()
+    return
+  }
+
   // ポーズコントローラーの更新
   poseController.update()
 
@@ -349,9 +401,6 @@ function animate() {
   poseController.setPlayer2Pose(npcPose);
   document.getElementById('player2-pose').textContent = `${npcPose} (NPC)`;
   const player2Input = poseController.getPlayer2Input()
-
-  player.update()
-  enemy.update()
 
   player.velocity.x = 0
   enemy.velocity.x = 0
@@ -539,12 +588,131 @@ function animate() {
 
   // end game based on health
   if (enemy.health <= 0 || player.health <= 0) {
-    determineWinner({ player, enemy, timerId })
+    if (!window.gameOver) {
+      determineWinner({ player, enemy, timerId })
+    }
   }
 }
 
 
 animate()
+
+// カウントダウン関数
+function startCountdown() {
+  countdownActive = true
+  countdownNumber = 3
+
+  const countdownInterval = setInterval(() => {
+    countdownNumber--
+
+    if (countdownNumber < 0) {
+      clearInterval(countdownInterval)
+      setTimeout(() => {
+        countdownActive = false
+        gameStarted = true
+        decreaseTimer() // タイマー開始
+      }, 1000) // "FIGHT!"を1秒間表示
+    }
+  }, 1000) // 1秒ごとにカウントダウン
+}
+
+// ゲームリセット関数
+function resetGame() {
+  // ゲーム状態をリセット
+  gameStarted = false
+  countdownActive = false
+  countdownNumber = 3
+  window.gameOver = false
+
+  // プレイヤーをリセット
+  player.position.x = 200
+  player.position.y = 100
+  player.velocity.x = 0
+  player.velocity.y = 0
+  player.health = 100
+  player.dead = false
+  player.isAttacking = false
+  player.framesCurrent = 0
+  player.framesElapsed = 0
+  player.isGuarding = false
+  player.isCrouching = false
+  player.isGuardHolding = false
+  player.guardExitRequested = false
+  player.currentAction = null
+  player.attackType = null
+
+  // エネミーをリセット
+  enemy.position.x = 700
+  enemy.position.y = 100
+  enemy.velocity.x = 0
+  enemy.velocity.y = 0
+  enemy.health = 100
+  enemy.dead = false
+  enemy.isAttacking = false
+  enemy.framesCurrent = 0
+  enemy.framesElapsed = 0
+  enemy.isGuarding = false
+  enemy.isCrouching = false
+  enemy.isGuardHolding = false
+  enemy.guardExitRequested = false
+  enemy.currentAction = null
+  enemy.attackType = null
+
+  // スプライトを明示的にidleに設定
+  player.image = player.sprites.idle.image
+  player.framesMax = player.sprites.idle.framesMax
+  player.framesCurrent = 0
+
+  enemy.image = enemy.sprites.idle.image
+  enemy.framesMax = enemy.sprites.idle.framesMax
+  enemy.framesCurrent = 0
+
+  // UIをリセット
+  document.querySelector('#playerHealth').style.width = '100%'
+  document.querySelector('#enemyHealth').style.width = '100%'
+  document.querySelector('#displayText').style.display = 'none'
+  document.querySelector('#timer').innerHTML = '60'
+
+  // リザルト画面のアニメーションをリセット
+  const gameWrapper = document.querySelector('#game-wrapper')
+  const resultText = document.querySelector('#resultText')
+  const restartText = document.querySelector('#restartText')
+
+  gameWrapper.classList.remove('show-result')
+  resultText.style.transform = 'scale(0)'
+  restartText.style.opacity = '0'
+
+  // タイマーをリセット
+  timer = 60
+  if (timerId) clearTimeout(timerId)
+
+  // NPCコントローラーをリセット
+  npcController.currentPose = 'STAND'
+  npcController.actionTimer = 0
+  npcController.thinkTimer = 0
+
+  // ポーズコントローラーをリセット
+  poseController.player1Pose = 'STAND'
+  poseController.player2Pose = 'STAND'
+
+  // プレイヤーの状態をリセット
+  player1CurrentState = 'stand'
+  player2CurrentState = 'stand'
+}
+
+// Enterキーでゲーム開始とリスタート
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    if (window.gameOver) {
+      // ゲームオーバー後のリスタート
+      resetGame()
+      startCountdown()
+    } else if (!gameStarted && !countdownActive) {
+      // 初回スタート
+      startCountdown()
+    }
+  }
+})
 
 // キーボード入力は保持（テスト用）
 // const keys = {

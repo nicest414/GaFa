@@ -9,14 +9,33 @@ function rectangularCollision({ rectangle1, rectangle2 }) {
 
 function determineWinner({ player, enemy, timerId }) {
   clearTimeout(timerId)
-  document.querySelector('#displayText').style.display = 'flex'
+
+  // グローバル変数にゲーム終了フラグを設定
+  window.gameOver = true
+
+  const displayText = document.querySelector('#displayText')
+  const resultText = document.querySelector('#resultText')
+  const gameWrapper = document.querySelector('#game-wrapper')
+
+  // リザルト画面を表示（アニメーション準備）
+  displayText.style.display = 'flex'
+
+  // 勝敗テキストを設定
   if (player.health === enemy.health) {
-    document.querySelector('#displayText').innerHTML = 'Tie'
+    resultText.innerHTML = 'Tie'
+    resultText.style.color = '#FFD700' // 金色
   } else if (player.health > enemy.health) {
-    document.querySelector('#displayText').innerHTML = 'Player 1 Wins'
+    resultText.innerHTML = 'Player 1 Wins'
+    resultText.style.color = '#00FF00' // 緑色
   } else if (player.health < enemy.health) {
-    document.querySelector('#displayText').innerHTML = 'Player 2 Wins'
+    resultText.innerHTML = 'Player 2 Wins'
+    resultText.style.color = '#FF4444' // 赤色
   }
+
+  // カットイン演出を開始（少し遅延させて）
+  setTimeout(() => {
+    gameWrapper.classList.add('show-result')
+  }, 100)
 }
 
 let timer = 60
