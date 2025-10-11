@@ -150,6 +150,9 @@ class Fighter extends Sprite {
     this.draw()
     if (!this.dead) this.animateFrames()
 
+    // プレイヤー名を表示
+    this.drawPlayerName()
+
     // 攻撃種別ごとにattackBoxの位置・サイズを切り替え
     switch (this.attackType) {
       case 'crouch_Punch':
@@ -216,6 +219,34 @@ class Fighter extends Sprite {
       this.velocity.y = 0
       this.position.y = 330
     } else this.velocity.y += gravity
+  }
+
+  // プレイヤー名表示メソッド
+  drawPlayerName() {
+    c.save();
+
+    // プレイヤー名の決定（colorで判別）
+    const playerName = this.color === 'blue' ? 'Player 2' : 'Player 1';
+
+    // テキストスタイル設定
+    c.font = 'bold 20px "Press Start 2P"';
+    c.textAlign = 'center';
+    c.textBaseline = 'bottom';
+
+    // キャラクターの中心位置を計算
+    const centerX = this.position.x - this.offset.x + (this.width / 2) + 75;
+    const nameY = this.position.y - 10; // キャラクターの上に表示
+
+    // 黒い縁取り
+    c.strokeStyle = 'black';
+    c.lineWidth = 4;
+    c.strokeText(playerName, centerX, nameY);
+
+    // テキスト本体（黄色）
+    c.fillStyle = '#FFD700';
+    c.fillText(playerName, centerX, nameY);
+
+    c.restore();
   }
 
   // 当たり判定表示メソッド

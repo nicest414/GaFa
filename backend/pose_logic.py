@@ -71,15 +71,11 @@ class Thresholds:
     # guard_wrist_to_shoulder_scale: 手首-肩が近いかどうか。0.6〜1.0。小さくするほど厳しい。
     guard_wrist_to_shoulder_scale: float = 0.6
 
-    # PUNCH 条件: 「肘が伸びている」かつ「手首が肩から十分離れている」かつ「肩高さと大きくズレない」。
-    # punch_elbow_angle_min: 150〜175。高いほど「しっかり伸ばした」時のみ反応。
-    punch_elbow_angle_min: float = 145.0
-    # punch_wrist_to_shoulder_scale: 手首-肩の距離比。1.0〜1.3。大きくすると厳しい。
-    punch_wrist_to_shoulder_scale: float = 1.0
-    # punch_wrist_y_align_scale: 肩高さからの許容ずれ（y方向）。0.2〜0.5。小さいほど厳しい。
-    punch_wrist_y_align_scale: float = 0.9
-    # Z軸 PUNCH 条件: 手首が肩よりどれだけ前に出ているかの最小値
-    punch_wrist_z_diff_min: float = 0.2
+    # PUNCH 条件: 「手首（拳）が画面前方に出ている」
+    # punch_wrist_z_diff_min: 手首が肩よりどれだけ前に出ているかの最小値（Z軸）。小さいほど検出しやすい。
+    punch_wrist_z_diff_min: float = 0.15
+    # punch_wrist_forward_to_body: 手首が体の中心（肩と腰の中間）より前に出ているかの最小値
+    punch_wrist_forward_to_body: float = 0.1
 
     # KICK 条件（常時検出抑止のため厳格化）。
     # kick_knee_angle_min: 膝の伸び。160〜175。高いほど「しっかり伸ばした」時のみ反応。
@@ -202,35 +198,47 @@ def classify_pose_from_landmarks(landmarks: Sequence[LandmarkLike]) -> str:
         guard_cond = l_close and r_close and l_elbow_bent and r_elbow_bent
 
     # --- PUNCH 検出（左右どちらか） ---
-    # 目的: 腕を伸ばして肩より前に突き出す動き。肩高さと大きくズレる（上下にブレる）場合は除外。
+    # 目的: 拳を画面の前方に突き出す動き。Z軸（カメラからの距離）で判定。
+    # ガードとの区別: 片手だけが前に出ている場合のみパンチとする
     # 調整ポイント:
-    # - 伸び判定: punch_elbow_angle_min（高いほど完全伸展のみ）
-    # - 前方距離: punch_wrist_to_shoulder_scale
-    # - 高さ整合: punch_wrist_y_align_scale（小さいほど厳格）
+    # - 前方判定: punch_wrist_z_diff_min（手首が肩より前に出ている量）
+    # - 体の中心より前: punch_wrist_forward_to_body（より確実な前方判定）
     punch_left = False
     punch_right = False
-    if has(PL.LEFT_SHOULDER, PL.LEFT_ELBOW, PL.LEFT_WRIST):
-        l_sh, l_el, l_wr = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_ELBOW], landmarks[PL.LEFT_WRIST]
-        l_elbow_angle = _angle_deg(l_sh, l_el, l_wr)
-        l_wrist_far = _dist(l_wr, l_sh) >= TH.punch_wrist_to_shoulder_scale * scale
-        l_wrist_y_align = abs(l_wr.y - l_sh.y) <= TH.punch_wrist_y_align_scale * scale
-         # ▼▼▼ Z軸の条件を追加 ▼▼▼
-    # 手首が肩より前に出ているか (shoulder.z - wrist.z が正の値になる)
-        l_wrist_pushed_forward = (l_sh.z - l_wr.z) >= TH.punch_wrist_z_diff_min
 
-        # ↓ 横(XY)か前(Z)のどちらかを満たせばOK、という形に修正
-        punch_left = (l_elbow_angle >= TH.punch_elbow_angle_min) and l_wrist_y_align and (l_wrist_far or l_wrist_pushed_forward)
+    if has(PL.LEFT_SHOULDER, PL.LEFT_WRIST, PL.LEFT_HIP, PL.RIGHT_WRIST):
+        l_sh, l_wr = landmarks[PL.LEFT_SHOULDER], landmarks[PL.LEFT_WRIST]
+        l_hip = landmarks[PL.LEFT_HIP]
+        r_wr = landmarks[PL.RIGHT_WRIST]
 
-    if has(PL.RIGHT_SHOULDER, PL.RIGHT_ELBOW, PL.RIGHT_WRIST):
-        r_sh, r_el, r_wr = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_ELBOW], landmarks[PL.RIGHT_WRIST]
-        r_elbow_angle = _angle_deg(r_sh, r_el, r_wr)
-        r_wrist_far = _dist(r_wr, r_sh) >= TH.punch_wrist_to_shoulder_scale * scale
-        r_wrist_y_align = abs(r_wr.y - r_sh.y) <= TH.punch_wrist_y_align_scale * scale
-         # ▼▼▼ Z軸の条件を追加 ▼▼▼
-    # 手首が肩より前に出ているか (shoulder.z - wrist.z が正の値になる)
-        r_wrist_pushed_forward = (r_sh.z - r_wr.z) >= TH.punch_wrist_z_diff_min
+        # 手首が肩より前に出ているか（Z軸）
+        l_wrist_forward_from_shoulder = (l_sh.z - l_wr.z) >= TH.punch_wrist_z_diff_min
 
-        punch_right = (r_elbow_angle >= TH.punch_elbow_angle_min) and r_wrist_y_align and (r_wrist_far or r_wrist_pushed_forward)
+        # 体の中心（肩と腰の中間）より前に出ているか
+        body_center_z = (l_sh.z + l_hip.z) / 2
+        l_wrist_forward_from_body = (body_center_z - l_wr.z) >= TH.punch_wrist_forward_to_body
+
+        # 右手が前に出ていないことを確認（ガードとの区別）
+        r_wrist_not_forward = (l_sh.z - r_wr.z) < TH.punch_wrist_z_diff_min
+
+        punch_left = l_wrist_forward_from_shoulder and l_wrist_forward_from_body and r_wrist_not_forward
+
+    if has(PL.RIGHT_SHOULDER, PL.RIGHT_WRIST, PL.RIGHT_HIP, PL.LEFT_WRIST):
+        r_sh, r_wr = landmarks[PL.RIGHT_SHOULDER], landmarks[PL.RIGHT_WRIST]
+        r_hip = landmarks[PL.RIGHT_HIP]
+        l_wr = landmarks[PL.LEFT_WRIST]
+
+        # 手首が肩より前に出ているか（Z軸）
+        r_wrist_forward_from_shoulder = (r_sh.z - r_wr.z) >= TH.punch_wrist_z_diff_min
+
+        # 体の中心（肩と腰の中間）より前に出ているか
+        body_center_z = (r_sh.z + r_hip.z) / 2
+        r_wrist_forward_from_body = (body_center_z - r_wr.z) >= TH.punch_wrist_forward_to_body
+
+        # 左手が前に出ていないことを確認（ガードとの区別）
+        l_wrist_not_forward = (r_sh.z - l_wr.z) < TH.punch_wrist_z_diff_min
+
+        punch_right = r_wrist_forward_from_shoulder and r_wrist_forward_from_body and l_wrist_not_forward
 
     punch_cond = punch_left or punch_right
 
