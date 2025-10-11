@@ -122,13 +122,25 @@ async function setup() {
 
 function draw() {
   background(20);
-  
+
   // ✨追加: カメラ映像をキャンバスに描画 (左右反転)
   if (video && video.elt && video.elt.readyState >= 2) {
     push();
     translate(width, 0);
     scale(-1, 1);
     image(video, 0, 0, width, height);
+    pop();
+  }
+
+  // プレイヤー名を表示（カメラ映像の後に描画して確実に見えるようにする）
+  if (video && video.elt && video.elt.readyState >= 2) {
+    push();
+    textSize(32);
+    textAlign(CENTER, TOP);
+    strokeWeight(5);
+    stroke(0, 0, 0); // 黒い縁取り
+    fill(255, 255, 0); // 黄色
+    text('Player 1', width / 2, 15);
     pop();
   }
 
